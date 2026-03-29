@@ -5,8 +5,11 @@ Access the deployed website on https://ccapdev-group11-mco.onrender.com
 # How to Run the Application
 
 To start the application, follow the steps:
-1. Initialize project folder as a Node project with `npm init -y`
-2. Run the command `npm run demo` on the root directory of the project. This will install dependencies and run the application on [http://localhost:3000/](http://localhost:3000/).
+1. Run `npm install` in the root directory of the project.
+2. Run `npm run dev` for development (auto-reload) or `npm start` for normal startup.
+3. As an alternative one-command setup, run `npm run demo` to install dependencies and start the app.
+
+The app runs on [http://localhost:3000/](http://localhost:3000/).
 
 Note that upon first run, the database will be automatically seeded with users, laboratories, and reservations. The database will automatically be seeded whenever there are no users and no laboratories.
 

@@ -64,13 +64,59 @@ if not exist "node_modules" (
     echo Node modules found.
 )
 
-:: Start MongoDB Community Server
-echo.
-echo NOTE: Make sure MongoDB Community Server is installed and running.
-echo If MongoDB is not running, please start it manually before continuing.
-echo.
-echo Press any key to continue with starting the application...
-pause >nul
+:: Check for Docker installation
+echo Checking for Docker installation...
+where docker >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo Docker is not installed or not in PATH.
+    echo Please install Docker Desktop from https://www.docker.com/products/docker-desktop/
+    pause
+    exit /b 1
+)
+
+:: Check if Docker engine is running
+echo Checking if Docker engine is running...
+docker info >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo Docker engine is not running.
+    echo Please start Docker Desktop, then run this script again.
+    pause
+    exit /b 1
+)
+
+:: Check if docker-compose.yml exists
+if not exist "docker-compose.yml" (
+    echo docker-compose.yml was not found in the project root.
+    pause
+    exit /b 1
+)
+
+:: Start MongoDB via Docker Compose
+echo Starting MongoDB container via Docker Compose...
+docker compose up -d mongodb
+if %ERRORLEVEL% neq 0 (
+    echo Failed to start MongoDB container.
+    pause
+    exit /b 1
+)
+
+:: Wait for MongoDB health check
+echo Waiting for MongoDB container to become healthy...
+set MONGO_HEALTH=unknown
+for /l %%i in (1,1,20) do (
+    for /f %%s in ('docker inspect --format "{{.State.Health.Status}}" labmate-mongodb 2^>nul') do set MONGO_HEALTH=%%s
+    if /I "!MONGO_HEALTH!"=="healthy" goto :mongo_ready
+    echo Attempt %%i/20 - current MongoDB status: !MONGO_HEALTH!
+    timeout /t 2 /nobreak >nul
+)
+
+echo MongoDB did not report healthy in time. Continuing startup anyway...
+goto :mongo_continue
+
+:mongo_ready
+echo MongoDB container is healthy.
+
+:mongo_continue
 
 :: Start the Node.js application with Nodemon
 echo Starting Node.js application with Nodemon on port 3000...
@@ -87,11 +133,12 @@ start http://localhost:3000
 echo ===================================
 echo LabMate Application Suite is running
 echo ===================================
+echo MongoDB: Running in Docker container labmate-mongodb
 echo Web Server: Running at http://localhost:3000
 echo.
 echo To stop the application:
 echo 1. Close the Node.js window
-echo 2. Or press Ctrl+C in the Node.js window
+echo 2. Stop MongoDB container with: docker compose stop mongodb
 echo ===================================
 
 exit /b 0
