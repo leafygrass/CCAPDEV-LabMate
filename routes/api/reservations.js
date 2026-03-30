@@ -1,6 +1,7 @@
 const express = require("express");
 const Reservation = require("../../database/models/Reservation");
 const Laboratory = require("../../database/models/Laboratory");
+const { convertTimeToMinutes } = require("../../utils/time");
 
 const router = express.Router();
 
@@ -82,21 +83,48 @@ router.patch("/api/reservation/:id", async (req, res) => {
 
 router.get("/api/reservations/check-availability", async (req, res) => {
     try {
-        const { lab, date, seatNumber, startTime, endTime } = req.query;
+        const { lab, labId, date, seatNumber, startTime, endTime } = req.query;
 
-        if (!lab || !date || !seatNumber || !startTime || !endTime) {
+        if ((!lab && !labId) || !date || !seatNumber || !startTime || !endTime) {
             return res.status(400).json({ available: false, message: "All parameters are required" });
         }
 
-        const existingReservation = await Reservation.findOne({
-            laboratoryRoom: lab,
+        let laboratoryRoom = lab;
+
+        if (!laboratoryRoom && labId) {
+            const laboratory = await Laboratory.findById(labId);
+
+            if (!laboratory) {
+                return res.status(404).json({ available: false, message: "Laboratory not found" });
+            }
+
+            laboratoryRoom = laboratory.room;
+        }
+
+        const reservationStart = new Date(date);
+        reservationStart.setHours(0, 0, 0, 0);
+
+        const reservationEnd = new Date(date);
+        reservationEnd.setHours(23, 59, 59, 999);
+
+        const existingReservations = await Reservation.find({
+            laboratoryRoom,
             seatNumber: parseInt(seatNumber, 10),
-            reservationDate: date,
-            startTime
+            reservationDate: {
+                $gte: reservationStart,
+                $lt: reservationEnd
+            }
         });
 
-        if (existingReservation) {
-            return res.json({ available: false, message: "This seat is already reserved for the selected time" });
+        const requestedStart = convertTimeToMinutes(startTime);
+        const requestedEnd = convertTimeToMinutes(endTime);
+        const hasConflict = existingReservations.some((reservation) =>
+            requestedStart < convertTimeToMinutes(reservation.endTime) &&
+            requestedEnd > convertTimeToMinutes(reservation.startTime)
+        );
+
+        if (hasConflict) {
+            return res.json({ available: false, message: "This seat is already reserved for the selected time range" });
         }
 
         return res.json({ available: true, message: "Seat is available" });
