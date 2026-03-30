@@ -9,55 +9,61 @@
     <link rel="stylesheet" href="/css/navbar-style.css">
     <link rel="stylesheet" href="/css/signedout-laboratories.css">
 </head>
-<body>
+<body class="signedout-laboratories-view">
     {{> navbar-signedout}}
 
     <div class="frame">
-        <span class="header">View Slot Availability</span>
+        <header class="page-intro">
+            <span class="header-kicker">Visitor Seat View</span>
+            <h1 class="header">Laboratory Availability</h1>
+            <p class="header-copy">Browse every seat, hover to inspect booking time ranges, and see whether a seat was reserved anonymously or by someone.</p>
+        </header>
 
-        <div class="dropdown">
-            <span class="dropdown-header">Laboratory</span>
-            <select name="labs" id="labs">
-                <option value="" disabled selected>Select a Laboratory</option>
-                {{#each labs}}
-                    <option value="{{this._id}}" data-capacity="{{this.capacity}}">{{this.room}} | {{this.hall}}</option>
-                {{/each}}
-            </select>
+        <div class="control-row">
+            <div class="dropdown">
+                <span class="dropdown-header">Laboratory</span>
+                <select name="labs" id="labs">
+                    <option value="" disabled selected>Select a Laboratory</option>
+                    {{#each labs}}
+                        <option value="{{this._id}}" data-capacity="{{this.capacity}}" data-room="{{this.room}}" data-hall="{{this.hall}}">{{this.room}} | {{this.hall}}</option>
+                    {{/each}}
+                </select>
+            </div>
+
+            <div class="dropdown">
+                <span class="dropdown-header">Date</span>
+                <select name="dates" id="dates">
+                    <option value="" disabled selected>Select a Date</option>
+                    {{#each next7Days}}
+                        <option value="{{this.formattedDate}}">{{this.displayDate}}</option>
+                    {{/each}}
+                </select>
+            </div>
+
+            <button id="view-button" type="button">Load Availability</button>
         </div>
-
-        <div class="dropdown">
-            <span class="dropdown-header">Date</span>
-            <select name="dates" id="dates">
-                <option value="" disabled selected>Select a Date</option>
-                {{#each next7Days}}
-                    <option value="{{this.formattedDate}}">{{this.displayDate}}</option>
-                {{/each}}
-            </select>
-        </div>
-
-        <button id="view-button" type="button">View Slots</button>
 
         <div id="chart">
-            <span id="chart-header">Slot Availability</span>
+            <div class="chart-heading">
+                <div>
+                    <span class="dropdown-header">Seat Availability</span>
+                    <h2 id="chart-header">Seat map</h2>
+                </div>
+                <p class="chart-copy" id="chart-copy">Choose a laboratory and date to inspect seat bookings.</p>
+            </div>
 
             <div id="chart-body">
-                <table id="slot-chart">
-                    <thead>
-                        <tr></tr>
-                    </thead>
-                    <tbody id="timetable"></tbody>
-                </table>
+                <div id="timetable" class="seat-grid" aria-live="polite"></div>
             </div>
         </div>
 
         <div id="legend">
-            <div id="legend-available"></div>
-            <span class="legend-text">Available</span>
-            <div id="legend-unavailable"></div>
-            <span class="legend-text">Unavailable</span>
+            <div class="legend-item"><div id="legend-available"></div><span class="legend-text">Available</span></div>
+            <div class="legend-item"><div id="legend-unavailable"></div><span class="legend-text">Fully Booked</span></div>
         </div>
     </div>
 
+    <div id="seat-hover-card" class="seat-hover-card" hidden></div>
     <script src="/js/signedout-laboratories.js"></script>
 </body>
 </html>
