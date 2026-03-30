@@ -38,7 +38,7 @@
 
             elements.image.src = user.image || "/img/default-profile.png";
             elements.name.textContent = `${user.firstName} ${user.lastName}`;
-            elements.type.textContent = user.isLabTech ? "Faculty" : "Student";
+            elements.type.textContent = user.roleLabel || (user.isLabTech ? "Lab Tech" : "Student");
             elements.email.textContent = user.email || "N/A";
             elements.department.textContent = user.department || "N/A";
             elements.biography.textContent = user.biography || "No biography provided yet.";

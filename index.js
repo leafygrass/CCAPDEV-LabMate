@@ -1,3 +1,5 @@
+require("./config/loadEnv");
+
 const express = require("express");
 const fileUpload = require("express-fileupload");
 const path = require("path");
@@ -13,10 +15,13 @@ const { DATABASE_URI } = require("./config/pageConfigs");
 const { logSessionState } = require("./middleware/sessionLogger");
 const { deletePastReservations } = require("./services/reservationService");
 const { startReservationCleanupJob } = require("./jobs/reservationCleanup");
+const { ensureAdminAccount } = require("./database/adminAccount");
+const { seedDatabase } = require("./database/seedDatabase");
 
 const publicRouter = require("./routes/public");
 const studentRouter = require("./routes/student");
 const labtechRouter = require("./routes/labtech");
+const adminRouter = require("./routes/admin");
 const userApiRouter = require("./routes/api/users");
 const reservationApiRouter = require("./routes/api/reservations");
 const laboratoryApiRouter = require("./routes/api/laboratories");
@@ -33,7 +38,8 @@ app.set("views", path.join(__dirname, "views"));
 app.engine("hbs", exphbs.engine({
     extname: "hbs",
     helpers: {
-        eq: (a, b) => a === b
+        eq: (a, b) => a === b,
+        isLabtechRole: (type) => type === "LabTech"
     }
 }));
 
@@ -46,10 +52,12 @@ mongoose.connect(process.env.DATABASE_URL || DATABASE_URI)
 
         if (userCount === 0 && labCount === 0) {
             console.log("Database is empty. Seeding database...");
-            await require("./database/seedDatabase");
+            await seedDatabase();
         } else {
             console.log(`Database currently has ${userCount} users & ${labCount} laboratories.`);
         }
+
+        await ensureAdminAccount();
     })
     .catch((err) => {
         console.error("MongoDB connection error:", err);
@@ -66,7 +74,7 @@ store.on("error", (error) => {
 
 app.use(cookieParser());
 app.use(session({
-    secret: "secret-key-shhhh",
+    secret: process.env.SESSION_SECRET || "secret-key-shhhh",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -81,6 +89,7 @@ app.use(logSessionState);
 app.use(publicRouter);
 app.use(studentRouter);
 app.use(labtechRouter);
+app.use(adminRouter);
 app.use(userApiRouter);
 app.use(reservationApiRouter);
 app.use(laboratoryApiRouter);

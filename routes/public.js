@@ -9,6 +9,7 @@ const {
     refreshSessionUser,
     destroySession
 } = require("../services/sessionService");
+const { addApplicationLog } = require("../services/applicationLogService");
 
 const router = express.Router();
 
@@ -84,6 +85,13 @@ router.post("/signin", async (req, res) => {
 
         req.session.visitCount = 1;
 
+        addApplicationLog({
+            actorName: `${user.firstName} ${user.lastName}`,
+            actorType: user.type,
+            action: "SIGN_IN",
+            target: user.email
+        });
+
         return redirectToUserHome(res, user.type);
     } catch (error) {
         console.error("Error during sign-in:", error.message, error.stack);
@@ -93,8 +101,9 @@ router.post("/signin", async (req, res) => {
 
 router.post("/signup", async (req, res) => {
     try {
-        let { firstName, lastName, email, newPass, confirmPass, type, facultyCode } = req.body;
+        let { firstName, lastName, email, newPass, confirmPass, type } = req.body;
         email = email.toLowerCase();
+        type = type || "Student";
 
         console.log("Received sign-up request:", { firstName, lastName, email, type });
 
@@ -112,12 +121,10 @@ router.post("/signup", async (req, res) => {
             return res.status(400).json({ error: "Email is already in use" });
         }
 
-        if (type === "Faculty" && !facultyCode) {
-            return res.status(400).json({ error: "Please enter a faculty code to proceed" });
-        }
-
-        if (type === "Faculty" && facultyCode !== "i-am-faculty") {
-            return res.status(400).json({ error: "Invalid faculty code" });
+        if (type !== "Student") {
+            return res.status(403).json({
+                error: "Only student accounts can be self-registered. LabTech and Admin accounts must be created by an Administrator."
+            });
         }
 
         const hashPass = await argon2.hash(newPass);
@@ -127,14 +134,21 @@ router.post("/signup", async (req, res) => {
             lastName,
             email,
             password: hashPass,
-            type
+            type: "Student"
         });
 
         await newUser.save();
-        console.log(`New ${type} user created:`, newUser._id);
+        console.log("New Student user created:", newUser._id);
 
         req.session.user = newUser.toObject();
         req.session.visitCount = 1;
+
+        addApplicationLog({
+            actorName: `${newUser.firstName} ${newUser.lastName}`,
+            actorType: newUser.type,
+            action: "SIGN_UP",
+            target: newUser.email
+        });
 
         return redirectToUserHome(res, newUser.type);
     } catch (error) {
@@ -149,6 +163,16 @@ router.get("/signedout-laboratories", async (req, res) => {
 
 router.get("/logout", (req, res) => {
     console.log("Destroying session and clearing remember me period...");
+
+    if (req.session?.user) {
+        addApplicationLog({
+            actorName: `${req.session.user.firstName} ${req.session.user.lastName}`,
+            actorType: req.session.user.type,
+            action: "SIGN_OUT",
+            target: req.session.user.email
+        });
+    }
+
     destroySession(req, res, () => res.redirect("/"));
 });
 

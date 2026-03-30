@@ -23,6 +23,10 @@
             <img src="/img/pencil_edit.svg" alt="Edit" class="nav-icon">
             <a href="#edit">Edit Profile</a>
         </div>
+        <div class="nav-item" id="password-nav">
+            <img src="/img/settings.svg" alt="Password" class="nav-icon">
+            <a href="#password">Change Password</a>
+        </div>
         <div class="nav-item" id="delete-nav">
             <img src="/img/delete.svg" alt="Delete" class="nav-icon">
             <a href="#delete">Delete Account</a>
@@ -112,7 +116,7 @@
                     <div class="detail-row">
                         <span class="label" style="font-weight: bold; font-size: 22px; padding-top: 5px; padding-bottom: 5px; font-family: 'Roboto';">Email:&nbsp;</span>
                         <span class="value" id="profile-email">{{user.email}}</span>
-                        <span class="tag" id="profile-type">[{{#if (eq user.type 'Faculty')}}Lab Technician{{else}}Student{{/if}}]</span>
+                        <span class="tag" id="profile-type">[{{#if (isLabtechRole user.type)}}Lab Tech{{else}}{{#if (eq user.type 'Admin')}}Administrator{{else}}Student{{/if}}{{/if}}]</span>
                     </div>
 
                     <div class="detail-row">
@@ -199,6 +203,30 @@
                             </div>
                         </li>
                     </ul>
+                </form>
+            </div>
+        </main>
+
+        <main class="main-content" id="password-section" style="display: none;">
+            <div class="profile-card">
+                <h2>Change Password</h2>
+                <p class="settings-section-copy">Set a new password for your account. This simple version only requires you to be logged in.</p>
+
+                <form id="change-password-form">
+                    <div class="form-group" style="padding-top: 10px; padding-bottom: 10px;">
+                        <label for="new-password">New Password</label>
+                        <input type="password" id="new-password" name="newPassword" required>
+                    </div>
+
+                    <div class="form-group" style="padding-top: 10px; padding-bottom: 10px;">
+                        <label for="confirm-new-password">Confirm New Password</label>
+                        <input type="password" id="confirm-new-password" name="confirmPassword" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn">Change Password</button>
+                        <button type="button" class="cancel-btn" onclick="cancelPassword()">Cancel</button>
+                    </div>
                 </form>
             </div>
         </main>
@@ -318,6 +346,43 @@
             });
         });
 
+        document.getElementById("change-password-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const newPassword = document.getElementById("new-password").value;
+            const confirmPassword = document.getElementById("confirm-new-password").value;
+
+            if (newPassword !== confirmPassword) {
+                alert("Passwords do not match.");
+                return;
+            }
+
+            fetch("/api/user/password", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    newPassword: newPassword,
+                    confirmPassword: confirmPassword
+                })
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    alert(data.message);
+                    document.getElementById("change-password-form").reset();
+                    document.getElementById("dashboard-nav").click();
+                } else {
+                    alert(data.message || "Failed to change password. Please try again.");
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("An error occurred while changing the password.");
+            });
+        });
+
         document.getElementById("delete-account-form").addEventListener("submit", function(event) {
             event.preventDefault();
 
@@ -348,6 +413,10 @@
         });
 
         function cancelEdit() {
+            document.getElementById("dashboard-nav").click();
+        }
+
+        function cancelPassword() {
             document.getElementById("dashboard-nav").click();
         }
 

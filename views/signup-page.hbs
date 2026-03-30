@@ -10,8 +10,6 @@
         <link rel="stylesheet" href="/css/theme-style.css">
         <link rel="stylesheet" href="/css/navbar-style.css">
         <link rel="stylesheet" href="/css/signup-page.css">
-
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <!-- add navigation bar and interactivity  -->
     </head>
     <body>
@@ -61,41 +59,9 @@
                 <br>
 
                 <div>
-                    <h2>Please select an account type</h2>
-                    <span>Your account type cannot be changed after account creation.</span>
-                    
-                    <div class="column" id="radio-type">
-                        <div class="left-column">
-                            <div class="inputWrapper">
-                                <input type="radio" name="type" value="Student" required>I am registering <b>as a student.</b>
-                            </div>
-
-                        </div>
-                        <div class="right-column">
-                            <div class="inputWrapper">
-                                <input type="radio" name="type" value="Faculty" required>I am registering <b>as a faculty member.</b> 
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="column" id="faculty">
-                        
-                        <div class="left-column">
-                            <div class="inputWrapper">
-                                <span>
-                                    Please enter your faculty code for verification. 
-                                    For assistance, contact an IT administrator. (for demo: i-am-faculty)    
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="right-column">
-                            <div class="inputWrapper">
-                                <label for="first-name">Faculty Code</label>
-                                <input type="text" id="faculty-code" name="facultyCode" class="text-field">
-                            </div>
-                        </div>
-                    </div>
+                    <h2>Account Type</h2>
+                    <span>Public signup is available for students only.</span>
+                    <input type="hidden" name="type" value="Student">
                 </div>
 
                 <div class="column" style="margin-top: 20px;">
@@ -131,7 +97,6 @@
             const type = formData.get('type');
             const newPass = formData.get('newPass');
             const confirmPass = formData.get('confirmPass');
-            const facultyCode = formData.get('facultyCode');
 
             if (!newPass || !confirmPass || !email || !firstName || !lastName || !type) {
                 error.textContent = 'All fields are required.';
@@ -165,20 +130,5 @@
             }
         });
         </script>
-
-        <script>
-            /* display faculty code form if radio value = 'faculty' */
-            $(document).ready(function() {
-                $("input[name='type']").change(function() {
-                    if ($(this).val() === 'Faculty') {
-                        $('#faculty').show();
-                    } else {
-                        $('#faculty').hide();
-                    }
-                });
-
-                $('#faculty').hide();
-            });
-        </script>        
     </body>
 </html> 

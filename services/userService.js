@@ -5,6 +5,18 @@ const Reservation = require("../database/models/Reservation");
 
 const UPLOADS_DIRECTORY = path.join(__dirname, "..", "public", "uploads");
 
+function formatRoleLabel(type) {
+    if (type === "LabTech") {
+        return "Lab Tech";
+    }
+
+    if (type === "Admin") {
+        return "Administrator";
+    }
+
+    return "Student";
+}
+
 async function findUserById(userId) {
     return User.findById(userId);
 }
@@ -18,7 +30,9 @@ function buildDetailedUserData(user) {
         department: user.department,
         biography: user.biography,
         image: user.image,
-        isLabTech: user.type === "Faculty"
+        isLabTech: user.type === "LabTech",
+        userType: user.type,
+        roleLabel: formatRoleLabel(user.type)
     };
 }
 
@@ -28,7 +42,9 @@ function buildBasicUserData(user) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        isLabTech: user.type === "Faculty"
+        isLabTech: user.type === "LabTech",
+        userType: user.type,
+        roleLabel: formatRoleLabel(user.type)
     };
 }
 
@@ -51,6 +67,19 @@ async function updateUserProfile(userId, body, files) {
     }
 
     await user.save();
+    return user;
+}
+
+async function updateUserPassword(userId, newPassword) {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        return null;
+    }
+
+    user.password = await argon2.hash(newPassword);
+    await user.save();
+
     return user;
 }
 
@@ -86,5 +115,6 @@ module.exports = {
     buildDetailedUserData,
     buildBasicUserData,
     updateUserProfile,
+    updateUserPassword,
     deleteUserAccount
 };

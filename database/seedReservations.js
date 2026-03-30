@@ -107,7 +107,7 @@ const seedReservations = async () => {
                     reservationDate: new Date(reservationDate),
                     startTime: startTime,
                     endTime: endTime,
-                    isAnonymous: user.type === "Faculty" ? false : Math.random() > 0.8 // 20% chance of being anonymous
+                    isAnonymous: user.type === "LabTech" ? false : Math.random() > 0.8 // 20% chance of being anonymous
                 };
                 
                 reservations.push(reservation);

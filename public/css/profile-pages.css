@@ -48,6 +48,26 @@ input {
     text-align: center;
 }
 
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding-top: 8px;
+}
+
+.settings-section-copy {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--text-color);
+    margin: 18px 0 28px;
+}
+
 #biography{
     border-radius: 10px;
     width: 70%;
@@ -452,5 +472,16 @@ label.upload-button{
         position: static;
         margin-top: 40px;
         flex-direction: column;
+    }
+
+    input,
+    #biography {
+        width: 100%;
+    }
+
+    .form-actions,
+    .logout-section-actions {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

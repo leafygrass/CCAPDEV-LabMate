@@ -536,7 +536,7 @@
 
                     const nameSpan = document.createElement("span");
                     nameSpan.className = "user-name";
-                    if (reservation.userId.type === "Faculty" && !reservation.isCurrentUser) {
+                    if (reservation.userId.type === "LabTech" && !reservation.isCurrentUser) {
                         nameSpan.textContent = "For Walk-in (by " + reservation.studentName + ")";
                     } else {
                         nameSpan.textContent = reservation.isCurrentUser ? "For Walk-in (by You)" : reservation.studentName;
@@ -548,7 +548,7 @@
                         nameSpan.className = "user-name";
                         nameSpan.textContent = "Anonymous Student";
                         popupBox.appendChild(nameSpan);
-                    } else if (reservation.userId.type === "Faculty") { // hide labtech info
+                    } else if (reservation.userId.type === "LabTech") { // hide lab tech info
                         const nameSpan = document.createElement("span");
                         nameSpan.className = "user-name";
                         nameSpan.textContent = "Walk-in Student";

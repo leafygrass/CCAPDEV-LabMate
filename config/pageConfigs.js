@@ -23,6 +23,7 @@ const PROFILE_SECTION_HASHES = {
     view: "#view",
     account: "#view",
     edit: "#edit",
+    password: "#password",
     delete: "#delete",
     logout: "#logout"
 };

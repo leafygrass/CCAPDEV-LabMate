@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LabMate - Admin Accounts</title>
+    <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="/css/theme-style.css">
+    <link rel="stylesheet" href="/css/navbar-style.css">
+    <style>
+        .admin-shell {
+            max-width: 1080px;
+            margin: 30px auto 60px;
+            padding: 0 24px;
+            color: #1d3853;
+        }
+
+        .admin-card {
+            background: #ffffff;
+            border: 1px solid #dbe5ef;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 24px rgba(29, 56, 83, 0.08);
+        }
+
+        .admin-card h1,
+        .admin-card h2 {
+            margin: 0 0 14px;
+        }
+
+        .admin-feedback {
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .admin-feedback.success {
+            background: #e7f9ee;
+            border: 1px solid #95d8ae;
+            color: #1f6f3f;
+        }
+
+        .admin-feedback.error {
+            background: #fff0f0;
+            border: 1px solid #e7a5a5;
+            color: #8a1c1c;
+        }
+
+        .admin-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .admin-form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .admin-form-field label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .admin-form-field input,
+        .admin-form-field select {
+            border: 1px solid #c5d4e2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .admin-form-actions {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .admin-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .admin-btn.primary {
+            background: #1d3853;
+            color: #ffffff;
+        }
+
+        .admin-btn.secondary {
+            background: #f0f5fa;
+            color: #1d3853;
+            border: 1px solid #c5d4e2;
+        }
+
+        .admin-btn.danger {
+            background: #a22626;
+            color: #ffffff;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            text-align: left;
+            border-bottom: 1px solid #e8edf2;
+            padding: 12px 8px;
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        .admin-inline-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .admin-inline-form select {
+            border: 1px solid #c5d4e2;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        @media (max-width: 800px) {
+            .admin-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-table,
+            .admin-table thead,
+            .admin-table tbody,
+            .admin-table tr,
+            .admin-table th,
+            .admin-table td {
+                display: block;
+            }
+
+            .admin-table thead {
+                display: none;
+            }
+
+            .admin-table tr {
+                border-bottom: 1px solid #e8edf2;
+                padding: 8px 0;
+            }
+
+            .admin-table td {
+                border-bottom: none;
+                padding: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{> navbar}}
+
+    <div class="admin-shell">
+        <section class="admin-card">
+            <h1>Administrator Account Controls</h1>
+            <p>Create, assign, and delete LabTech/Admin accounts. Student signup remains public-only.</p>
+
+            {{#if message}}
+                <div class="admin-feedback success">{{message}}</div>
+            {{/if}}
+
+            {{#if error}}
+                <div class="admin-feedback error">{{error}}</div>
+            {{/if}}
+
+            <form method="post" action="/admin-accounts">
+                <div class="admin-form-grid">
+                    <div class="admin-form-field">
+                        <label for="firstName">First Name</label>
+                        <input id="firstName" name="firstName" type="text" required>
+                    </div>
+                    <div class="admin-form-field">
+                        <label for="lastName">Last Name</label>
+                        <input id="lastName" name="lastName" type="text" required>
+                    </div>
+                    <div class="admin-form-field">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" required>
+                    </div>
+                    <div class="admin-form-field">
+                        <label for="type">Role</label>
+                        <select id="type" name="type" required>
+                            <option value="LabTech">LabTech</option>
+                            <option value="Admin">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" required>
+                    </div>
+                    <div class="admin-form-field">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input id="confirmPassword" name="confirmPassword" type="password" required>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button class="admin-btn primary" type="submit">Create Privileged Account</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="admin-card">
+            <h2>Existing LabTech/Admin Accounts</h2>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Current Role</th>
+                        <th>Assign Role</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each privilegedUsers}}
+                        <tr>
+                            <td>{{this.firstName}} {{this.lastName}}</td>
+                            <td>{{this.email}}</td>
+                            <td>{{this.type}}</td>
+                            <td>
+                                <form class="admin-inline-form" method="post" action="/admin-accounts/{{this._id}}/role">
+                                    <select name="type">
+                                        <option value="LabTech" {{#if (eq this.type 'Admin')}}{{else}}selected{{/if}}>LabTech</option>
+                                        <option value="Admin" {{#if (eq this.type 'Admin')}}selected{{/if}}>Administrator</option>
+                                    </select>
+                                    <button class="admin-btn secondary" type="submit">Update</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form method="post" action="/admin-accounts/{{this._id}}/delete" onsubmit="return confirm('Delete this privileged account?');">
+                                    <button class="admin-btn danger" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>

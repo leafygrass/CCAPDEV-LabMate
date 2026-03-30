@@ -1,4 +1,8 @@
+const { addApplicationLog } = require("../services/applicationLogService");
+
 function logSessionState(req, res, next) {
+    const hasUser = Boolean(req.session && req.session.user);
+
     if (req.session && req.session.user) {
         const rememberPeriodDays = ((req.session.cookie?.maxAge ?? 0) / (24 * 60 * 60 * 1000)).toFixed(1);
 
@@ -11,6 +15,13 @@ function logSessionState(req, res, next) {
     } else {
         console.log("No user is currently logged in.");
     }
+
+    addApplicationLog({
+        actorName: hasUser ? `${req.session.user.firstName} ${req.session.user.lastName}` : "Guest",
+        actorType: hasUser ? req.session.user.type : "Guest",
+        action: `${req.method} ${req.originalUrl}`,
+        target: "HTTP_REQUEST"
+    });
 
     next();
 }

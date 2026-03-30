@@ -5,14 +5,35 @@ echo ===================================
 echo Starting LabMate Application Suite
 echo ===================================
 
-:: Check if port 3000 is already in use
-echo Checking if port 3000 is already in use...
-netstat -ano | findstr :3000 > nul
+:: Ensure environment file exists
+echo Checking environment configuration...
+if not exist ".env" (
+    if exist ".sample.env" (
+        copy /Y ".sample.env" ".env" >nul
+        echo Created .env from .sample.env.
+    ) else (
+        echo Neither .env nor .sample.env was found in the project root.
+        pause
+        exit /b 1
+    )
+) else (
+    echo .env file found.
+)
+
+set APP_PORT=3000
+for /f "usebackq tokens=1,* delims==" %%a in (".env") do (
+    if /I "%%a"=="PORT" set APP_PORT=%%b
+)
+if not defined APP_PORT set APP_PORT=3000
+
+:: Check if the configured port is already in use
+echo Checking if port !APP_PORT! is already in use...
+netstat -ano | findstr :!APP_PORT! > nul
 if %ERRORLEVEL% EQU 0 (
-    echo Port 3000 is already in use. Attempting to free it...
+    echo Port !APP_PORT! is already in use. Attempting to free it...
     
-    :: Find the PID using port 3000
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000') do (
+    :: Find the PID using the configured port
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :!APP_PORT!') do (
         set PID=%%a
         goto :found_pid
     )
@@ -25,18 +46,18 @@ if %ERRORLEVEL% EQU 0 (
     timeout /t 2 /nobreak > nul
     
     :: Check again if port is free
-    netstat -ano | findstr :3000 > nul
+    netstat -ano | findstr :!APP_PORT! > nul
     if %ERRORLEVEL% EQU 0 (
-        echo Failed to free port 3000. Please close the application using this port manually.
-        echo You can identify the process using: netstat -ano ^| findstr :3000
+        echo Failed to free port !APP_PORT!. Please close the application using this port manually.
+        echo You can identify the process using: netstat -ano ^| findstr :!APP_PORT!
         echo Then terminate it using: taskkill /F /PID [PID]
         pause
         exit /b 1
     ) else (
-        echo Successfully freed port 3000.
+        echo Successfully freed port !APP_PORT!.
     )
 ) else (
-    echo Port 3000 is available.
+    echo Port !APP_PORT! is available.
 )
 
 :: Check for Node.js installation
@@ -119,22 +140,22 @@ echo MongoDB container is healthy.
 :mongo_continue
 
 :: Start the Node.js application with Nodemon
-echo Starting Node.js application with Nodemon on port 3000...
-start "Node.js Server" cmd /c npx nodemon index.js
+echo Starting Node.js application with Nodemon on port !APP_PORT!...
+start "Node.js Server" cmd /c npm run dev
 
 :: Wait for the server to start
 echo Waiting for server to start...
 timeout /t 3 /nobreak >nul
 
-:: Open the default browser to localhost:3000
+:: Open the default browser to the configured localhost port
 echo Opening application in browser...
-start http://localhost:3000
+start http://localhost:!APP_PORT!
 
 echo ===================================
 echo LabMate Application Suite is running
 echo ===================================
 echo MongoDB: Running in Docker container labmate-mongodb
-echo Web Server: Running at http://localhost:3000
+echo Web Server: Running at http://localhost:!APP_PORT!
 echo.
 echo To stop the application:
 echo 1. Close the Node.js window

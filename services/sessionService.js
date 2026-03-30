@@ -1,8 +1,20 @@
 const User = require("../database/models/User");
 const { SESSION_COOKIE_NAME } = require("../config/pageConfigs");
 
+function getHomePathByType(userType) {
+    if (userType === "LabTech") {
+        return "/labtech-home";
+    }
+
+    if (userType === "Admin") {
+        return "/admin-home";
+    }
+
+    return "/student-home";
+}
+
 function redirectToUserHome(res, userType) {
-    return res.redirect(userType === "Faculty" ? "/labtech-home" : "/student-home");
+    return res.redirect(getHomePathByType(userType));
 }
 
 function destroySession(req, res, onComplete) {
@@ -34,6 +46,7 @@ function createGuestOnlyPageHandler(viewName) {
 }
 
 module.exports = {
+    getHomePathByType,
     redirectToUserHome,
     destroySession,
     refreshSessionUser,

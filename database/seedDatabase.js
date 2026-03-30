@@ -1,12 +1,13 @@
-const mongoose = require('mongoose');
-const argon2 = require('argon2');
-const User = require('./models/User');
-const Laboratory = require('./models/Laboratory');
-const { seedReservations } = require('./seedReservations'); // js for reservations
+require("../config/loadEnv");
 
-mongoose.connect(process.env.DATABASE_URL || 'mongodb://localhost/LabMateDB')
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('Could not connect to MongoDB', err));
+const mongoose = require("mongoose");
+const argon2 = require("argon2");
+
+const { DATABASE_URI } = require("../config/pageConfigs");
+const User = require("./models/User");
+const Laboratory = require("./models/Laboratory");
+const { seedReservations } = require("./seedReservations");
+const { ensureAdminAccount } = require("./adminAccount");
 
 // Demo student profiles
 const demoStudents = [
@@ -62,46 +63,38 @@ const demoStudents = [
     }
 ];
 
-// Demo lab technician profiles
+// Demo lab tech profiles
 const demoLabTechs = [
     {
-        type: 'Faculty',
+        type: 'LabTech',
         firstName: 'Charlie',
         lastName: 'Caronongan',
-        email: 'faculty@dlsu.edu.ph',
-        password: 'faculty',
+        email: 'labtech@dlsu.edu.ph',
+        password: 'labtech',
         department: 'Computer Science',
-        biography: 'Lab technician for DLSU. No, I am not a dog...',
+        biography: 'Lab tech for DLSU. No, I am not a dog...',
         image: "/uploads/charlie.jpg",
         department: 'Computer Science',
     },
     {
-        type: 'Faculty',
+        type: 'LabTech',
         firstName: 'Noah',
         lastName: 'Davis',
         email: 'noah_davis@dlsu.edu.ph',
         department: 'Computer Science',
-        biography: "I am a professor.",
+        biography: "I am a lab tech.",
         image: "/uploads/noah.jpg",
         password: 'password123',
     },
     {
-        type: 'Faculty',
+        type: 'LabTech',
         firstName: 'Michael',
         lastName: 'Myers',
         email: 'michael_myers@dlsu.edu.ph',
         biography: "*intense breathing in and out from mask sounds*",
         image: "/uploads/michael.jpg",
         password: 'password123',
-    },
-    {
-        type: 'Faculty',
-        firstName: 'Admin',
-        lastName: 'Admin',
-        email: 'admin@dlsu.edu.ph',
-        biography: "Admin",
-        password: 'admin',
-    },
+    }
 ];
 
 // Demo laboratories
@@ -133,16 +126,24 @@ const demoLaboratories = [
     }
 ];
 
-// Function to create a date object for a specific day
-const createDate = (day) => {
-    const date = new Date();
-    date.setDate(day);
-    date.setHours(0, 0, 0, 0);
-    return date;
-};
+async function hashSeedUsers(users) {
+    return Promise.all(
+        users.map(async (user) => ({
+            ...user,
+            password: await argon2.hash(user.password)
+        }))
+    );
+}
 
 const seedDatabase = async () => {
+    const shouldManageConnection = mongoose.connection.readyState === 0;
+
     try {
+        if (shouldManageConnection) {
+            await mongoose.connect(process.env.DATABASE_URL || DATABASE_URI);
+            console.log("Connected to MongoDB");
+        }
+
         // Clear existing data
         await User.deleteMany({});
         await Laboratory.deleteMany({});
@@ -150,20 +151,15 @@ const seedDatabase = async () => {
         console.log('Previous data cleared');
 
         // Hash all passwords
-        for (const student of demoStudents) {
-            student.password = await argon2.hash(student.password);
-        }
-
-        for (const labtech of demoLabTechs) {
-            labtech.password = await argon2.hash(labtech.password);
-        }
+        const hashedStudents = await hashSeedUsers(demoStudents);
+        const hashedLabTechs = await hashSeedUsers(demoLabTechs);
 
         // Insert new demo data
-        await User.insertMany(demoStudents);
+        await User.insertMany(hashedStudents);
         console.log('Demo students added');
 
-        await User.insertMany(demoLabTechs);
-        console.log('Demo lab technicians added');
+        await User.insertMany(hashedLabTechs);
+        console.log('Demo lab techs added');
 
         await Laboratory.insertMany(demoLaboratories);
         console.log('Demo laboratories added');
@@ -172,13 +168,24 @@ const seedDatabase = async () => {
         await seedReservations();
         console.log('Demo reservations added');
 
-        console.log('Database seeded successfully');
+        await ensureAdminAccount();
+        console.log("Default admin account ensured");
 
-        mongoose.disconnect();
-        process.exit()
+        console.log('Database seeded successfully');
     } catch (error) {
         console.error('Error seeding database:', error);
+        throw error;
+    } finally {
+        if (shouldManageConnection) {
+            await mongoose.disconnect();
+        }
     }
 };
 
-seedDatabase();
+if (require.main === module) {
+    seedDatabase()
+        .then(() => process.exit(0))
+        .catch(() => process.exit(1));
+}
+
+module.exports = { seedDatabase };

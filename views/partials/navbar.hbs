@@ -1,18 +1,24 @@
 <header class="nav-header">
     <div class="navbar">
-        <a href="{{#if (eq user.type 'Faculty')}}/labtech-home{{else}}/student-home{{/if}}"><div class="logo">
+        <a href="{{#if (eq user.type 'Admin')}}/admin-home{{else}}{{#if (isLabtechRole user.type)}}/labtech-home{{else}}/student-home{{/if}}{{/if}}"><div class="logo">
             <label id="labmate-logo">Lab<span style="color:#1d3853;">Mate</span></label>
         </div></a>
 
         {{!-- Links based on user type  --}}
         <ul class="nav-links">
-            <li><a href="{{#if (eq user.type 'Faculty')}}/labtech-home{{else}}/student-home{{/if}}" id="nav-home" title="Home Page">Home</a></li>
-            <li><a href="{{#if (eq user.type 'Faculty')}}/labtech-laboratories{{else}}/student-laboratories{{/if}}" id="nav-lab" title="View Laboratories">Laboratories</a></li>
-            <li><a href="{{#if (eq user.type 'Faculty')}}/labtech-reservations{{else}}/student-reservations{{/if}}" id="nav-reserve" title="Check Reservations">Reservations</a></li>
+            <li><a href="{{#if (eq user.type 'Admin')}}/admin-home{{else}}{{#if (isLabtechRole user.type)}}/labtech-home{{else}}/student-home{{/if}}{{/if}}" id="nav-home" title="Home Page">Home</a></li>
+
+            {{#if (eq user.type 'Admin')}}
+                <li><a href="/admin-accounts" id="nav-accounts" title="Manage Privileged Accounts">Manage Accounts</a></li>
+                <li><a href="/admin-logs" id="nav-log" title="View Application Log">Application Log</a></li>
+            {{else}}
+                <li><a href="{{#if (isLabtechRole user.type)}}/labtech-laboratories{{else}}/student-laboratories{{/if}}" id="nav-lab" title="View Laboratories">Laboratories</a></li>
+                <li><a href="{{#if (isLabtechRole user.type)}}/labtech-reservations{{else}}/student-reservations{{/if}}" id="nav-reserve" title="Check Reservations">Reservations</a></li>
+            {{/if}}
         </ul>
 
         <div class="nav-profile">
-            <a href="{{#if (eq user.type 'Faculty')}}/labtech-profile{{else}}/student-profile{{/if}}"><img src="{{#if user.image}}{{user.image}}{{else}}/img/default-profile.png{{/if}}" id="profile-img" title="View Profile" alt="Profile Image"></a>
+            <a href="{{#if (eq user.type 'Admin')}}/admin-profile{{else}}{{#if (isLabtechRole user.type)}}/labtech-profile{{else}}/student-profile{{/if}}{{/if}}"><img src="{{#if user.image}}{{user.image}}{{else}}/img/default-profile.png{{/if}}" id="profile-img" title="View Profile" alt="Profile Image"></a>
         </div>
     </div>
 </header>
@@ -26,6 +32,7 @@
         switch (pageWithoutExt) {
             case 'student-home':
             case 'labtech-home':
+            case 'admin-home':
                 document.getElementById("nav-home")?.classList.add("active");
                 break;
             case 'student-reservations':
@@ -35,6 +42,12 @@
             case 'student-laboratories':
             case 'labtech-laboratories':
                 document.getElementById("nav-lab")?.classList.add("active");
+                break;
+            case 'admin-accounts':
+                document.getElementById("nav-accounts")?.classList.add("active");
+                break;
+            case 'admin-logs':
+                document.getElementById("nav-log")?.classList.add("active");
                 break;
             default:
                 break;

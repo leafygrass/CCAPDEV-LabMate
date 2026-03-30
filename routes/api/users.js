@@ -5,6 +5,7 @@ const {
     buildDetailedUserData,
     buildBasicUserData,
     updateUserProfile,
+    updateUserPassword,
     deleteUserAccount
 } = require("../../services/userService");
 
@@ -77,6 +78,36 @@ router.put("/api/user/update", isAuth, async (req, res) => {
         });
     } catch (error) {
         console.error(`Error updating user: ${error.message}`);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+router.put("/api/user/password", isAuth, async (req, res) => {
+    try {
+        const { newPassword, confirmPassword } = req.body;
+
+        if (!newPassword || !confirmPassword) {
+            return res.status(400).json({ message: "Both password fields are required" });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+
+        const user = await updateUserPassword(req.session.user._id, newPassword);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        req.session.user = user.toObject();
+
+        res.json({
+            success: true,
+            message: "Password changed successfully"
+        });
+    } catch (error) {
+        console.error(`Error updating password: ${error.message}`);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });

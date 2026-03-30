@@ -1,3 +1,5 @@
+const { getHomePathByType } = require("../services/sessionService");
+
 function isAuth(req, res, next) {
     if (req.session.user) {
         next();
@@ -6,26 +8,30 @@ function isAuth(req, res, next) {
     }
 }
 
-function createRoleGuard(expectedType, redirectPath) {
+function createRoleGuard(expectedType, fallbackRedirectPath = "/student-home") {
+    const expectedTypes = Array.isArray(expectedType) ? expectedType : [expectedType];
+
     return (req, res, next) => {
         if (!req.session.user) {
             return res.redirect("/signin-page");
         }
 
-        if (req.session.user.type !== expectedType) {
-            return res.redirect(redirectPath);
+        if (!expectedTypes.includes(req.session.user.type)) {
+            return res.redirect(getHomePathByType(req.session.user.type) || fallbackRedirectPath);
         }
 
         next();
     };
 }
 
-const requireStudent = createRoleGuard("Student", "/labtech-home");
-const requireLabtech = createRoleGuard("Faculty", "/student-home");
+const requireStudent = createRoleGuard("Student");
+const requireLabtech = createRoleGuard("LabTech");
+const requireAdmin = createRoleGuard("Admin");
 
 module.exports = {
     isAuth,
     createRoleGuard,
     requireStudent,
-    requireLabtech
+    requireLabtech,
+    requireAdmin
 };

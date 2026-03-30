@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LabMate - Application Log</title>
+    <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="/css/theme-style.css">
+    <link rel="stylesheet" href="/css/navbar-style.css">
+    <style>
+        .log-shell {
+            max-width: 1180px;
+            margin: 30px auto 60px;
+            padding: 0 24px;
+            color: #1d3853;
+        }
+
+        .log-card {
+            background: #ffffff;
+            border: 1px solid #dbe5ef;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 10px 24px rgba(29, 56, 83, 0.08);
+        }
+
+        .log-card h1 {
+            margin: 0 0 8px;
+        }
+
+        .log-card p {
+            margin: 0 0 16px;
+            font-size: 14px;
+            color: #3d5872;
+        }
+
+        .log-table-wrap {
+            overflow-x: auto;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 860px;
+        }
+
+        .log-table th,
+        .log-table td {
+            text-align: left;
+            border-bottom: 1px solid #e8edf2;
+            padding: 10px 8px;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        .log-empty {
+            text-align: center;
+            color: #3d5872;
+            padding: 22px;
+            border: 1px dashed #c7d8e8;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    {{> navbar}}
+
+    <div class="log-shell">
+        <section class="log-card">
+            <h1>Application Log (Read-Only)</h1>
+            <p>Only Administrator accounts can access this page.</p>
+
+            {{#if logs.length}}
+                <div class="log-table-wrap">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Actor</th>
+                                <th>Role</th>
+                                <th>Action</th>
+                                <th>Target</th>
+                                <th>Metadata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#each logs}}
+                                <tr>
+                                    <td>{{this.displayTimestamp}}</td>
+                                    <td>{{this.actorName}}</td>
+                                    <td>{{this.actorType}}</td>
+                                    <td>{{this.action}}</td>
+                                    <td>{{this.target}}</td>
+                                    <td>{{this.metadata}}</td>
+                                </tr>
+                            {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            {{else}}
+                <div class="log-empty">No application logs captured yet.</div>
+            {{/if}}
+        </section>
+    </div>
+</body>
+</html>
