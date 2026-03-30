@@ -1,0 +1,155 @@
+const express = require("express");
+const argon2 = require("argon2");
+const User = require("../database/models/User");
+const { REMEMBER_ME_DURATION_MS } = require("../config/pageConfigs");
+const { renderLaboratoryPage } = require("../services/pageService");
+const {
+    createGuestOnlyPageHandler,
+    redirectToUserHome,
+    refreshSessionUser,
+    destroySession
+} = require("../services/sessionService");
+
+const router = express.Router();
+
+router.get("/", async (req, res) => {
+    if (req.session.user) {
+        const user = await refreshSessionUser(req);
+
+        if (!user) {
+            console.log("User no longer exists in database. Destroying session...");
+            return destroySession(req, res, () => res.render("index"));
+        }
+
+        if (req.session.cookie.maxAge) {
+            req.session.cookie.maxAge += REMEMBER_ME_DURATION_MS;
+        }
+
+        req.session.visitCount = (req.session.visitCount || 0) + 1;
+
+        return redirectToUserHome(res, user.type);
+    }
+
+    res.render("index");
+});
+
+router.get("/about", (req, res) => {
+    res.render("about");
+});
+
+router.get("/signin-page", createGuestOnlyPageHandler("signin-page"));
+router.get("/signup-page", createGuestOnlyPageHandler("signup-page"));
+
+router.post("/signin", async (req, res) => {
+    try {
+        let { email, password, rememberMe } = req.body;
+        email = email.toLowerCase();
+
+        console.log("Received sign-in request for email:", email);
+
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and password are required" });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ error: "Account does not exist. Please try again with a different email" });
+        }
+
+        try {
+            const passMatch = await argon2.verify(user.password, password);
+            if (!passMatch) {
+                return res.status(401).json({ error: "Password is incorrect. Please try again." });
+            }
+        } catch (verifyError) {
+            console.error("Password verification error:", verifyError.message);
+
+            if (verifyError.message.includes("must contain a $ as first char")) {
+                return res.status(401).json({
+                    error: "There was an issue with your password. Please try again later or contact support."
+                });
+            }
+
+            return res.status(401).json({ error: "Authentication failed. Please try again." });
+        }
+
+        req.session.user = user.toObject();
+
+        if (rememberMe) {
+            req.session.cookie.maxAge = REMEMBER_ME_DURATION_MS;
+        } else {
+            req.session.cookie.expires = false;
+        }
+
+        req.session.visitCount = 1;
+
+        return redirectToUserHome(res, user.type);
+    } catch (error) {
+        console.error("Error during sign-in:", error.message, error.stack);
+        res.status(500).json({ error: "An error occurred during sign-in" });
+    }
+});
+
+router.post("/signup", async (req, res) => {
+    try {
+        let { firstName, lastName, email, newPass, confirmPass, type, facultyCode } = req.body;
+        email = email.toLowerCase();
+
+        console.log("Received sign-up request:", { firstName, lastName, email, type });
+
+        if (!firstName || !lastName || !email || !newPass || !confirmPass) {
+            return res.status(400).json({ error: "All fields are required" });
+        }
+
+        if (newPass !== confirmPass) {
+            return res.status(400).json({ error: "Passwords do not match" });
+        }
+
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(400).json({ error: "Email is already in use" });
+        }
+
+        if (type === "Faculty" && !facultyCode) {
+            return res.status(400).json({ error: "Please enter a faculty code to proceed" });
+        }
+
+        if (type === "Faculty" && facultyCode !== "i-am-faculty") {
+            return res.status(400).json({ error: "Invalid faculty code" });
+        }
+
+        const hashPass = await argon2.hash(newPass);
+
+        const newUser = new User({
+            firstName,
+            lastName,
+            email,
+            password: hashPass,
+            type
+        });
+
+        await newUser.save();
+        console.log(`New ${type} user created:`, newUser._id);
+
+        req.session.user = newUser.toObject();
+        req.session.visitCount = 1;
+
+        return redirectToUserHome(res, newUser.type);
+    } catch (error) {
+        console.error("Error during sign-up:", error);
+        res.status(500).json({ error: "An error occurred during sign-up" });
+    }
+});
+
+router.get("/signedout-laboratories", async (req, res) => {
+    await renderLaboratoryPage(req, res, "signedout-laboratories", "firstName lastName isAnonymous type");
+});
+
+router.get("/logout", (req, res) => {
+    console.log("Destroying session and clearing remember me period...");
+    destroySession(req, res, () => res.redirect("/"));
+});
+
+module.exports = router;

@@ -1,51 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>LabMate - User Profile</title> 
+    <title>LabMate - User Profile</title>
     <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="css/profile-pages.css">
-    <link rel="stylesheet" href="css/theme-style.css">
-    <link rel="stylesheet" href="css/navbar-style.css">
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $.getScript("js/userProfile.js");
-        });
-    </script>
+    <link rel="stylesheet" href="/css/profile-pages.css">
+    <link rel="stylesheet" href="/css/theme-style.css">
+    <link rel="stylesheet" href="/css/navbar-style.css">
 </head>
 <body>
     {{> navbar}}
 
-    <!-- Side Navigation -->
     <nav class="side-nav">
         <div class="nav-item active" id="dashboard-nav">
-            <img src="img/Home.svg" alt="Dashboard" class="nav-icon">
+            <img src="/img/Home.svg" alt="Dashboard" class="nav-icon">
             <a href="#dashboard">Dashboard</a>
         </div>
         <div class="nav-item" id="view-nav">
-            <img src="img/view.svg" alt="Settings" class="nav-icon">
+            <img src="/img/view.svg" alt="Settings" class="nav-icon">
             <a href="#view">View Profile</a>
         </div>
         <div class="nav-item" id="edit-nav">
-            <img src="img/pencil_edit.svg" alt="Edit" class="nav-icon">
+            <img src="/img/pencil_edit.svg" alt="Edit" class="nav-icon">
             <a href="#edit">Edit Profile</a>
         </div>
         <div class="nav-item" id="delete-nav">
-            <img src="img/delete.svg" alt="Delete" class="nav-icon">
+            <img src="/img/delete.svg" alt="Delete" class="nav-icon">
             <a href="#delete">Delete Account</a>
         </div>
         <div class="nav-item" id="logout-nav">
-            <img src="img/settings.svg" alt="Logout" class="nav-icon">
+            <img src="/img/settings.svg" alt="Logout" class="nav-icon">
             <a href="#logout">Logout</a>
         </div>
     </nav>
 
-    <!-- Main Content Sections -->
     <div id="content-container">
-        <!-- Dashboard Section -->
         <main class="main-content dashboard" id="dashboard-section">
-            <!-- Overview Cards -->
             <div class="overview-cards">
                 <div class="card upcoming-lab">
                     <h2>Upcoming Laboratory</h2>
@@ -65,13 +54,12 @@
                 <div class="card total-reserved">
                     <h2>Total Reserved</h2>
                     <div class="card-content">
-                        <img src="img/desktop.svg" alt="Computer Icon" class="desktop-icon">
+                        <img src="/img/desktop.svg" alt="Computer Icon" class="desktop-icon">
                         <span class="count" id="reserved-count">{{reservations.length}}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Reservations Table -->
             <section class="reservations-section">
                 <h2>Reserved Laboratories</h2>
                 <div class="table-container">
@@ -107,21 +95,24 @@
             </section>
         </main>
 
-        <!-- Profile Overview Section -->
         <main class="main-content" id="view-section" style="display: none;">
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-picture-large">
-                        <img id="profile-image" src="{{user.image}}" alt="Profile Picture">
+                        <img
+                            id="profile-image"
+                            src="{{#if user.image}}{{user.image}}{{else}}/img/default-profile.png{{/if}}"
+                            alt="Profile Picture"
+                        >
                     </div>
                     <h2 id="profile-name" style="color: var(--dark-blue)">{{user.firstName}} {{user.lastName}}</h2>
                 </div>
 
                 <div class="profile-details">
                     <div class="detail-row">
-                        <span class="label" style="font-weight: bold; font-size: 22px; padding-top: 5px; padding-bottom: 5px; font-family:  'Roboto';">Email:&nbsp;</span>
+                        <span class="label" style="font-weight: bold; font-size: 22px; padding-top: 5px; padding-bottom: 5px; font-family: 'Roboto';">Email:&nbsp;</span>
                         <span class="value" id="profile-email">{{user.email}}</span>
-                        <span class="tag" id="profile-type">[Student]</span>
+                        <span class="tag" id="profile-type">[{{#if (eq user.type 'Faculty')}}Lab Technician{{else}}Student{{/if}}]</span>
                     </div>
 
                     <div class="detail-row">
@@ -143,21 +134,22 @@
             </div>
         </main>
 
-
-
-        <!-- Edit Profile Section -->
         <main class="main-content" id="edit-section" style="display: none;">
             <div class="profile-card">
                 <h2 style="padding-left: 10px;">Edit Profile</h2>
                 <form id="profile-edit-form">
                     <div class="profile-header" style="padding-left: 10px;">
                         <div class="profile-picture-large">
-                            <img id="edit-profile-image" src="{{user.image}}" alt="Profile Picture">
+                            <img
+                                id="edit-profile-image"
+                                src="{{#if user.image}}{{user.image}}{{else}}/img/default-profile.png{{/if}}"
+                                alt="Profile Picture"
+                            >
                         </div>
                         <div class="upload-overlay">
                             <div class="upload-wrapper">
                                 <label for="profile-image-input" class="upload-button">
-                                    <img src="img/upload.png" class="upload-img" alt="Upload">
+                                    <img src="/img/upload.png" class="upload-img" alt="Upload">
                                 </label>
                             </div>
                             <input type="file" id="profile-image-input" accept="image/*" style="display: none;">
@@ -190,7 +182,7 @@
                             <div class="form-group">
                                 <label for="department">Department</label>
                                 <input type="text" id="department" name="department" value="{{user.department}}">
-                            </div>    
+                            </div>
                         </li>
 
                         <li>
@@ -211,7 +203,6 @@
             </div>
         </main>
 
-        <!-- Delete Account Section -->
         <main class="main-content" id="delete-section" style="display: none;">
             <div class="profile-card">
                 <h2>Delete Account</h2>
@@ -248,148 +239,124 @@
 
     <script>
         let selectedImage = null;
-        const navItems = document.querySelectorAll('.nav-item');
-        const sections = document.querySelectorAll('.main-content');
+        const navItems = document.querySelectorAll(".nav-item");
+        const sections = document.querySelectorAll(".main-content");
 
         function activateSection(sectionName) {
             const sectionId = `${sectionName}-section`;
             const navId = `${sectionName}-nav`;
 
-            navItems.forEach(item => {
-                item.classList.toggle('active', item.id === navId);
+            navItems.forEach((item) => {
+                item.classList.toggle("active", item.id === navId);
             });
 
-            sections.forEach(section => {
-                section.style.display = section.id === sectionId ? 'block' : 'none';
+            sections.forEach((section) => {
+                section.style.display = section.id === sectionId ? "block" : "none";
             });
 
             const targetHash = `#${sectionName}`;
             if (window.location.hash !== targetHash) {
-                window.history.replaceState(null, '', targetHash);
+                window.history.replaceState(null, "", targetHash);
             }
         }
 
-        navItems.forEach(item => {
-            item.addEventListener('click', function(event) {
+        navItems.forEach((item) => {
+            item.addEventListener("click", function(event) {
                 event.preventDefault();
-                activateSection(this.id.replace('-nav', ''));
+                activateSection(this.id.replace("-nav", ""));
             });
         });
 
-        window.addEventListener('hashchange', function() {
-            const sectionName = window.location.hash.replace('#', '');
+        window.addEventListener("hashchange", function() {
+            const sectionName = window.location.hash.replace("#", "");
             if (document.getElementById(`${sectionName}-section`)) {
                 activateSection(sectionName);
             }
         });
 
-        const initialSection = window.location.hash.replace('#', '');
-        activateSection(document.getElementById(`${initialSection}-section`) ? initialSection : 'dashboard');
+        const initialSection = window.location.hash.replace("#", "");
+        activateSection(document.getElementById(`${initialSection}-section`) ? initialSection : "dashboard");
 
-        // Handle profile image upload
-        document.getElementById('profile-image-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
+        document.getElementById("profile-image-input").addEventListener("change", function(event) {
+            const file = event.target.files[0];
             if (file) {
                 selectedImage = file;
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('edit-profile-image').src = e.target.result;
+                reader.onload = function(loadEvent) {
+                    document.getElementById("edit-profile-image").src = loadEvent.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Handle profile edit form submission
-        document.getElementById('profile-edit-form').addEventListener('submit', function(event) {
+        document.getElementById("profile-edit-form").addEventListener("submit", function(event) {
             event.preventDefault();
-            
+
             const formData = new FormData();
-            formData.append('department', document.getElementById('department').value);
-            formData.append('biography', document.getElementById('biography').value);
+            formData.append("department", document.getElementById("department").value);
+            formData.append("biography", document.getElementById("biography").value);
             if (selectedImage) {
-                formData.append('image', selectedImage);
+                formData.append("image", selectedImage);
             }
 
-            // Send a PUT request to update user data
-            fetch('/api/user/update', {
-                method: 'PUT',
+            fetch("/api/user/update", {
+                method: "PUT",
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
                 if (data.success) {
-                    alert('Profile updated successfully!');
+                    alert("Profile updated successfully!");
                     location.reload();
                 } else {
-                    alert('Failed to update profile. Please try again.');
+                    alert("Failed to update profile. Please try again.");
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while updating the profile.');
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("An error occurred while updating the profile.");
             });
         });
 
-        // Handle profile delete form submission
-        document.getElementById('delete-account-form').addEventListener('submit', function(event) {
+        document.getElementById("delete-account-form").addEventListener("submit", function(event) {
             event.preventDefault();
-            
-            const password = document.getElementById('delete-password').value;
 
-            // send request to delete user (if same passwords)
-            if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                fetch('/api/user/delete', {
-                    method: 'DELETE',
+            const password = document.getElementById("delete-password").value;
+
+            if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                fetch("/api/user/delete", {
+                    method: "DELETE",
                     headers: {
-                        'Content-Type': 'application/json'
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify({ password: password })
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then((response) => response.json())
+                .then((data) => {
                     if (data.success) {
                         alert(data.message);
-                        window.location.href = '/logout';
+                        window.location.href = "/logout";
                     } else {
                         alert(data.message);
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while deleting the account.');
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("An error occurred while deleting the account.");
                 });
             }
         });
 
         function cancelEdit() {
-            document.getElementById('dashboard-nav').click();
+            document.getElementById("dashboard-nav").click();
         }
 
         function cancelDelete() {
-            document.getElementById('dashboard-nav').click();
+            document.getElementById("dashboard-nav").click();
         }
 
         function cancelLogout() {
-            document.getElementById('dashboard-nav').click();
-        }
-
-        function convertTo24Hour(time12h) {
-            const [time, modifier] = time12h.split(' ');
-            let [hours, minutes] = time.split(':');
-            
-            if (hours === '12') {
-                hours = '00';
-            }
-            
-            if (modifier === 'PM') {
-                hours = parseInt(hours, 10) + 12;
-            }
-            
-            return `${hours}:${minutes}`;
-        }
-
-        function timeToNumber(timeStr) {
-            return parseInt(timeStr.replace(':', ''));
+            document.getElementById("dashboard-nav").click();
         }
     </script>
 </body>

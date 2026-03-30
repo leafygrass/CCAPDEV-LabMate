@@ -3,17 +3,21 @@
 <head>
     <title>LabMate - Reservations</title>
     <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="css/theme-style.css">
-    <link rel="stylesheet" href="css/navbar-style.css">
-    <link rel="stylesheet" href="css/reservations.css">
-    <link rel="stylesheet" href="css/pop-up.css">
-    <link rel="stylesheet" href="css/reservation-details.css">
+    <link rel="stylesheet" href="/css/theme-style.css">
+    <link rel="stylesheet" href="/css/navbar-style.css">
+    <link rel="stylesheet" href="/css/reservations.css">
+    <link rel="stylesheet" href="/css/pop-up.css">
+    <link rel="stylesheet" href="/css/reservation-details.css">
 </head>
 <body data-reservations-page>
     {{> navbar}}
 
-    <h1 style="padding-bottom: 10px">Student Reservations</h1>
-    <span style="display: block; text-align: center; margin: 0 100px; margin-bottom: 30px">Deleting student reservations are only possible within 10 minutes of their time slot.</span>
+    {{#if pageSubheading}}
+    <h1 style="padding-bottom: 10px">{{pageHeading}}</h1>
+    <span style="display: block; text-align: center; margin: 0 100px; margin-bottom: 30px">{{pageSubheading}}</span>
+    {{else}}
+    <h1>{{pageHeading}}</h1>
+    {{/if}}
 
     <div class="reservations {{#unless reservations}}no-reservations{{/unless}}">
         {{#if reservations}}
@@ -30,13 +34,11 @@
             <tbody>
                 {{#each reservations}}
                 <tr>
-                    {{#isRemovable this._id ../removableReservations}}
-                    <td style="text-align: right">
-                        <input type="radio" name="select-option" class="select-btn" value="{{../_id}}">
+                    <td style="text-align: right;">
+                        {{#if this.canRemove}}
+                        <input type="radio" name="select-option" class="select-btn" value="{{this._id}}">
+                        {{/if}}
                     </td>
-                    {{else}}
-                    <td style="text-align: right;"></td>
-                    {{/isRemovable}}
                     <td>{{this.laboratoryRoom}}</td>
                     <td>{{this.reservationDate}}</td>
                     <td>

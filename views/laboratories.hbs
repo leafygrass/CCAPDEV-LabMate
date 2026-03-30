@@ -101,7 +101,7 @@
         {{>navbar}}
 
         <div class="frame">
-            <span class="header">Reserve a Slot</span>
+            <span class="header">{{pageHeading}}</span>
 
             {{#if success}}
             <div style="background-color: #23c686; color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
@@ -162,12 +162,14 @@
                 </select>
             </div>
 
+            {{#if allowAnonymous}}
             <div id="anonymous-option" class="checkbox-container" style="display: none;">
                 <input type="checkbox" id="anonymous" name="anonymous">
                 <label for="anonymous">Book anonymously?</label>
             </div>
+            {{/if}}
 
-            <button id="reserve-button" onclick="openPopup()">Create Booking</button>
+            <button id="reserve-button" onclick="openPopup()">{{reserveButtonLabel}}</button>
         </div>
 
         <div id="overlay" class="overlay"></div>
@@ -188,7 +190,7 @@
             </div>
         </div>
 
-        <form id="reservationForm" action="/create-reservation" method="POST" style="display: none;">
+        <form id="reservationForm" action="{{reservationAction}}" method="POST" style="display: none;">
             <input type="hidden" id="labId" name="labId" value="">
             <input type="hidden" id="date" name="date" value="">
             <input type="hidden" id="seatNumber" name="seatNumber" value="">
@@ -522,6 +524,25 @@
                     timeSpan.className = "popup-header";
                     timeSpan.textContent = `${reservation.startTime} - ${reservation.endTime}`;
                     popupBox.appendChild(timeSpan);
+                    {{#if isWalkInMode}}
+                    const userImg = document.createElement("img");
+                    userImg.className = "user-img";
+                    userImg.src = reservation.userId.image;
+                    userImg.onclick = function(event) {
+                        event.stopPropagation();
+                        openProfileModal(reservation.userId._id);
+                    };
+                    popupBox.appendChild(userImg);
+
+                    const nameSpan = document.createElement("span");
+                    nameSpan.className = "user-name";
+                    if (reservation.userId.type === "Faculty" && !reservation.isCurrentUser) {
+                        nameSpan.textContent = "For Walk-in (by " + reservation.studentName + ")";
+                    } else {
+                        nameSpan.textContent = reservation.isCurrentUser ? "For Walk-in (by You)" : reservation.studentName;
+                    }
+                    popupBox.appendChild(nameSpan);
+                    {{else}}
                     if (reservation.isAnonymous && !reservation.isCurrentUser) {
                         const nameSpan = document.createElement("span");
                         nameSpan.className = "user-name";
@@ -544,9 +565,10 @@
                         
                         const nameSpan = document.createElement("span");
                         nameSpan.className = "user-name";
-                        nameSpan.textContent = reservation.isCurrentUser ? "Your Reservation" + (reservation.isAnonymous ? " (Anonymous)" : ""): reservation.studentName;
+                        nameSpan.textContent = reservation.isCurrentUser ? "Your Reservation" + (reservation.isAnonymous ? " (Anonymous)" : "") : reservation.studentName;
                         popupBox.appendChild(nameSpan);
                     }
+                    {{/if}}
                     
                     popupDiv.appendChild(popupBox);
                     frameContainer.appendChild(popupDiv);
@@ -604,7 +626,7 @@
 
                 // Validate that all required fields are selected
                 if (!lab || !date || !endTime || !seatNumber || !startTime) {
-                    alert("Please select a laboratory, date, end time, and seat before reserving.");
+                    alert("{{missingSelectionMessage}}");
                     hideConfirmPopup();
                     return;
                 }

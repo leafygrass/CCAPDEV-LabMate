@@ -11,16 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leafygrass/CCAPDEV-LabMate.git"
+    "url": "git+https://github.com/spacialaceart/CCAPDEV-LabMate.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/leafygrass/CCAPDEV-LabMate/issues"
+    "url": "https://github.com/spacialaceart/CCAPDEV-LabMate/issues"
   },
-  "homepage": "https://github.com/leafygrass/CCAPDEV-LabMate#readme",
-  "description": "CCAPDEV - S16 (Capote, Gonzales Ho, Rocha)",
+  "homepage": "https://github.com/spacialaceart/CCAPDEV-LabMate#readme",
+  "description": "CSSECDV S33 LabMate is a web application designed to facilitate the management of laboratory resources and activities. It provides features such as user authentication, session management, file uploads, and database interactions using MongoDB. The application is built using Express.js and Handlebars for server-side rendering, and it incorporates security measures like password hashing with bcrypt and argon2.",
     "dependencies": {
     "argon2": "^0.43.1",
     "bcrypt": "^6.0.0",
