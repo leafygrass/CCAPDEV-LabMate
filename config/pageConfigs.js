@@ -33,7 +33,7 @@ const LABORATORY_PAGE_CONFIGS = {
         pageHeading: "Reserve a Slot",
         reserveButtonLabel: "Create Booking",
         reservationAction: "/create-reservation",
-        missingSelectionMessage: "Please select a laboratory, date, end time, and seat before reserving.",
+        missingSelectionMessage: "Please select a laboratory, date, seat, start time, and end time before reserving.",
         allowAnonymous: true,
         isWalkInMode: false
     },
@@ -41,7 +41,7 @@ const LABORATORY_PAGE_CONFIGS = {
         pageHeading: "Reserve for Walk-ins",
         reserveButtonLabel: "Create Booking for Walk-In",
         reservationAction: "/create-reservation-labtech",
-        missingSelectionMessage: "Please make sure all input fields are filled.",
+        missingSelectionMessage: "Please select a laboratory, date, seat, start time, and end time before reserving.",
         allowAnonymous: false,
         isWalkInMode: true
     }

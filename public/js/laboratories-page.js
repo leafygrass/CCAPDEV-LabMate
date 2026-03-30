@@ -9,21 +9,22 @@
         "05:30 P.M.", "06:00 P.M.", "06:30 P.M.", "07:00 P.M.",
         "07:30 P.M.", "08:00 P.M.", "08:30 P.M.", "09:00 P.M."
     ];
-    const seatClassNames = ["clickable-seat", "selected-seat", "taken-seat", "my-booking-seat"];
 
     let selectedSeatButton = null;
     let availabilityLoaded = false;
+    let currentReservations = [];
+    let currentDisplayTimeSlots = [];
 
     function getElements() {
         return {
             labSelect: document.getElementById("labs"),
             dateSelect: document.getElementById("dates"),
+            startTimeSelect: document.getElementById("starttimes"),
             endTimeSelect: document.getElementById("endtimes"),
             labButtons: Array.from(document.querySelectorAll(".lab-option")),
             viewButton: document.getElementById("view-button"),
             reserveButton: document.getElementById("reserve-button"),
             timetable: document.getElementById("timetable"),
-            slotChartHead: document.getElementById("slot-chart-head"),
             chartHeader: document.getElementById("chart-header"),
             selectedLabName: document.getElementById("selected-lab-name"),
             selectedLabMeta: document.getElementById("selected-lab-meta"),
@@ -35,6 +36,7 @@
             summaryDuration: document.getElementById("summary-duration"),
             selectedSeatChip: document.getElementById("selected-seat-chip"),
             selectedTimeChip: document.getElementById("selected-time-chip"),
+            seatHoverCard: document.getElementById("seat-hover-card"),
             confirmPopup: document.getElementById("confirm-popup"),
             overlay: document.getElementById("overlay"),
             confirmCancel: document.getElementById("confirm-cancel-button"),
@@ -75,7 +77,7 @@
 
     function getDurationLabel(startTime, endTime) {
         if (!startTime || !endTime) {
-            return "Select a seat and end time";
+            return "Select a start and end time";
         }
 
         const durationMinutes = toMinutes(endTime) - toMinutes(startTime);
@@ -126,16 +128,129 @@
         return elements.labSelect.options[elements.labSelect.selectedIndex];
     }
 
-    function setButtonClass(button, className) {
-        button.classList.remove(...seatClassNames);
-        button.classList.add(className);
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#39;"
+        }[character]));
+    }
+
+    function setSelectPlaceholder(selectElement, placeholderText) {
+        if (!selectElement) {
+            return;
+        }
+
+        selectElement.innerHTML = `<option value="" disabled selected>${placeholderText}</option>`;
+    }
+
+    function resetTimeSelectors(elements) {
+        setSelectPlaceholder(elements.startTimeSelect, "Select a Seat First");
+        setSelectPlaceholder(elements.endTimeSelect, "Select a Start Time First");
+    }
+
+    function getSelectedSeatNumber() {
+        return selectedSeatButton?.dataset.seatNumber || "";
+    }
+
+    function getSelectedStartTime(elements) {
+        return elements.startTimeSelect?.value || "";
+    }
+
+    function getSeatReservations(seatNumber) {
+        return currentReservations
+            .filter((reservation) => reservation.seatNumber.toString() === seatNumber.toString())
+            .sort((first, second) => toMinutes(first.startTime) - toMinutes(second.startTime));
+    }
+
+    function getDisplayTimeSlots(selectedDate) {
+        if (selectedDate !== formatToday()) {
+            return [...TIME_SLOTS];
+        }
+
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+        return TIME_SLOTS.filter((timeSlot) => toMinutes(timeSlot) > nowMinutes);
+    }
+
+    function getValidEndTimes(seatNumber, startTime) {
+        const startIndex = TIME_SLOTS.indexOf(startTime);
+
+        if (startIndex === -1 || startIndex >= TIME_SLOTS.length - 1) {
+            return [];
+        }
+
+        const seatReservations = getSeatReservations(seatNumber);
+
+        if (seatReservations.some((reservation) => isTimeInRange(startTime, reservation.startTime, reservation.endTime))) {
+            return [];
+        }
+
+        let nextReservationIndex = TIME_SLOTS.length - 1;
+
+        seatReservations.forEach((reservation) => {
+            const reservationStartIndex = TIME_SLOTS.indexOf(reservation.startTime);
+
+            if (reservationStartIndex > startIndex && reservationStartIndex < nextReservationIndex) {
+                nextReservationIndex = reservationStartIndex;
+            }
+        });
+
+        const endTimes = [];
+
+        for (let index = startIndex + 1; index <= nextReservationIndex && index < TIME_SLOTS.length; index += 1) {
+            endTimes.push(TIME_SLOTS[index]);
+        }
+
+        return endTimes;
+    }
+
+    function getSelectableStartTimes(seatNumber) {
+        return currentDisplayTimeSlots.filter((timeSlot) => getValidEndTimes(seatNumber, timeSlot).length > 0);
+    }
+
+    function hasCurrentUserBooking(seatReservations) {
+        return seatReservations.some((reservation) => reservation.userId?._id?.toString() === String(config.userId));
+    }
+
+    function getSeatCardCopy(seatReservations, isSelectable, hasMyBooking) {
+        if (!currentDisplayTimeSlots.length || currentDisplayTimeSlots.length < 2) {
+            return {
+                status: "Unavailable",
+                hint: "No remaining time slots today"
+            };
+        }
+
+        if (!seatReservations.length) {
+            return {
+                status: isSelectable ? "Open all day" : "Unavailable",
+                hint: isSelectable ? "No bookings on this date" : "No remaining start times"
+            };
+        }
+
+        if (hasMyBooking) {
+            return {
+                status: seatReservations.length === 1 ? "Your booking" : "Has your booking",
+                hint: isSelectable ? "Hover to inspect bookings" : "No remaining start times"
+            };
+        }
+
+        return {
+            status: isSelectable
+                ? `${seatReservations.length} booking${seatReservations.length === 1 ? "" : "s"}`
+                : "Fully booked",
+            hint: "Hover to inspect bookings"
+        };
     }
 
     function updateSelectionSummary(elements) {
         const selectedLab = getSelectedLabOption(elements);
         const dateText = elements.dateSelect?.selectedOptions?.[0]?.text || "Not selected";
-        const seatNumber = selectedSeatButton?.getAttribute("seat-number");
-        const startTime = selectedSeatButton?.getAttribute("seat-time");
+        const seatNumber = getSelectedSeatNumber();
+        const startTime = getSelectedStartTime(elements);
         const endTime = elements.endTimeSelect?.value || "";
 
         if (elements.summaryLab) {
@@ -171,7 +286,7 @@
         }
 
         if (elements.reserveButton) {
-            elements.reserveButton.disabled = !(selectedLab && elements.dateSelect?.value && selectedSeatButton && endTime);
+            elements.reserveButton.disabled = !(selectedLab && elements.dateSelect?.value && seatNumber && startTime && endTime);
         }
     }
 
@@ -195,213 +310,292 @@
         updateSelectionSummary(elements);
     }
 
-    function resetSelectionState(elements) {
-        selectedSeatButton = null;
-
-        if (elements.endTimeSelect) {
-            elements.endTimeSelect.innerHTML = '<option value="" disabled selected>Select an End Time</option>';
+    function hideSeatHoverCard(elements) {
+        if (!elements.seatHoverCard) {
+            return;
         }
 
-        elements.timetable?.querySelectorAll(".selected-seat").forEach((button) => {
-            setButtonClass(button, "clickable-seat");
-        });
+        elements.seatHoverCard.hidden = true;
+        elements.seatHoverCard.innerHTML = "";
+    }
+
+    function resetSelectionState(elements) {
+        if (selectedSeatButton) {
+            selectedSeatButton.classList.remove("is-selected");
+        }
+
+        selectedSeatButton = null;
+        resetTimeSelectors(elements);
+        hideSeatHoverCard(elements);
     }
 
     function renderEmptyTimetable(elements, message) {
-        if (elements.slotChartHead) {
-            elements.slotChartHead.innerHTML = "";
-        }
+        currentReservations = [];
+        currentDisplayTimeSlots = [];
 
         if (elements.timetable) {
-            elements.timetable.innerHTML = `<tr><td class="empty-state-cell">${message}</td></tr>`;
+            elements.timetable.innerHTML = `<div class="empty-state-cell">${message}</div>`;
         }
 
         resetSelectionState(elements);
         updateSelectionSummary(elements);
     }
 
-    function applyRangeSelection(elements) {
-        elements.timetable?.querySelectorAll(".selected-seat").forEach((button) => {
-            setButtonClass(button, "clickable-seat");
-        });
-
-        if (!selectedSeatButton) {
-            updateSelectionSummary(elements);
-            return;
+    function getUserDisplayName(user) {
+        if (!user) {
+            return "";
         }
 
-        const seatNumber = selectedSeatButton.getAttribute("seat-number");
-        const startTime = selectedSeatButton.getAttribute("seat-time");
-        const selectedEndTime = elements.endTimeSelect?.value || "";
-        const startIndex = TIME_SLOTS.indexOf(startTime);
-        const endIndex = TIME_SLOTS.indexOf(selectedEndTime);
+        return `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    }
 
-        if (!selectedEndTime || startIndex === -1 || endIndex === -1) {
-            setButtonClass(selectedSeatButton, "selected-seat");
-            updateSelectionSummary(elements);
-            return;
-        }
+    function getReservationOwnerLabel(reservation) {
+        const isCurrentUser = reservation.userId?._id?.toString() === String(config.userId);
+        const fallbackName = reservation.studentName || getUserDisplayName(reservation.userId) || "someone";
 
-        elements.timetable?.querySelectorAll(`[seat-number="${seatNumber}"]`).forEach((button) => {
-            const seatIndex = TIME_SLOTS.indexOf(button.getAttribute("seat-time"));
-            if (seatIndex >= startIndex && seatIndex < endIndex) {
-                setButtonClass(button, "selected-seat");
+        if (config.isWalkInMode) {
+            if (isCurrentUser) {
+                return reservation.studentName
+                    ? `Walk-in booking by you for ${reservation.studentName}`
+                    : "Walk-in booking by you";
             }
+
+            return reservation.studentName
+                ? `Walk-in booking for ${reservation.studentName}`
+                : `Walk-in booking by ${fallbackName}`;
+        }
+
+        if (reservation.userId?.type === "LabTech") {
+            return "Walk-in booking";
+        }
+
+        if (reservation.isAnonymous && !isCurrentUser) {
+            return "Anonymous booking";
+        }
+
+        if (isCurrentUser) {
+            return reservation.isAnonymous ? "Your booking (anonymous)" : "Your booking";
+        }
+
+        return `Booked by ${fallbackName}`;
+    }
+
+    function buildSeatHoverCardMarkup(seatNumber) {
+        const seatReservations = getSeatReservations(seatNumber);
+        const selectableStartTimes = getSelectableStartTimes(seatNumber);
+        const subtitle = seatReservations.length
+            ? `${seatReservations.length} booking${seatReservations.length === 1 ? "" : "s"} for this date${selectableStartTimes.length ? " with remaining availability." : "."}`
+            : "No bookings for this date.";
+
+        if (!seatReservations.length) {
+            return `
+                <h4 class="seat-hover-card__title">Seat ${escapeHtml(seatNumber)}</h4>
+                <p class="seat-hover-card__subtitle">${escapeHtml(subtitle)}</p>
+            `;
+        }
+
+        const listItems = seatReservations.map((reservation) => `
+            <li class="seat-hover-card__item">
+                <span class="seat-hover-card__time">${escapeHtml(`${reservation.startTime} - ${reservation.endTime}`)}</span>
+                <span class="seat-hover-card__meta">${escapeHtml(getReservationOwnerLabel(reservation))}</span>
+            </li>
+        `).join("");
+
+        return `
+            <h4 class="seat-hover-card__title">Seat ${escapeHtml(seatNumber)}</h4>
+            <p class="seat-hover-card__subtitle">${escapeHtml(subtitle)}</p>
+            <ul class="seat-hover-card__list">${listItems}</ul>
+        `;
+    }
+
+    function positionSeatHoverCard(elements, button, event) {
+        if (!elements.seatHoverCard || elements.seatHoverCard.hidden) {
+            return;
+        }
+
+        const card = elements.seatHoverCard;
+        const buttonRect = button.getBoundingClientRect();
+        const viewportPadding = 16;
+        const offset = 18;
+        const pointerX = event?.clientX ?? (buttonRect.left + buttonRect.width / 2);
+        const pointerY = event?.clientY ?? buttonRect.top;
+
+        card.style.left = "0px";
+        card.style.top = "0px";
+
+        const cardWidth = card.offsetWidth;
+        const cardHeight = card.offsetHeight;
+
+        let left = pointerX + offset;
+        let top = pointerY + offset;
+
+        if (left + cardWidth > window.innerWidth - viewportPadding) {
+            left = window.innerWidth - cardWidth - viewportPadding;
+        }
+
+        if (top + cardHeight > window.innerHeight - viewportPadding) {
+            top = pointerY - cardHeight - offset;
+        }
+
+        if (top < viewportPadding) {
+            top = viewportPadding;
+        }
+
+        if (left < viewportPadding) {
+            left = viewportPadding;
+        }
+
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+    }
+
+    function showSeatHoverCard(elements, button, event) {
+        if (!elements.seatHoverCard) {
+            return;
+        }
+
+        elements.seatHoverCard.innerHTML = buildSeatHoverCardMarkup(button.dataset.seatNumber);
+        elements.seatHoverCard.hidden = false;
+        positionSeatHoverCard(elements, button, event);
+    }
+
+    function populateStartTimes(elements) {
+        const seatNumber = getSelectedSeatNumber();
+
+        setSelectPlaceholder(elements.startTimeSelect, seatNumber ? "Select a Start Time" : "Select a Seat First");
+        setSelectPlaceholder(elements.endTimeSelect, "Select a Start Time First");
+
+        if (!seatNumber) {
+            updateSelectionSummary(elements);
+            return;
+        }
+
+        const startTimes = getSelectableStartTimes(seatNumber);
+
+        if (!startTimes.length) {
+            setSelectPlaceholder(elements.startTimeSelect, "No Available Start Times");
+            updateSelectionSummary(elements);
+            return;
+        }
+
+        startTimes.forEach((timeSlot) => {
+            const option = document.createElement("option");
+            option.value = timeSlot;
+            option.textContent = timeSlot;
+            elements.startTimeSelect.appendChild(option);
         });
 
         updateSelectionSummary(elements);
     }
 
-    function createNameElement(text) {
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "user-name";
-        nameSpan.textContent = text;
-        return nameSpan;
-    }
+    function populateEndTimes(elements) {
+        const seatNumber = getSelectedSeatNumber();
+        const startTime = getSelectedStartTime(elements);
 
-    function createReservationPopups(reservations) {
-        document.querySelectorAll(".popup2").forEach((popup) => popup.remove());
+        setSelectPlaceholder(elements.endTimeSelect, startTime ? "Select an End Time" : "Select a Start Time First");
 
-        reservations.forEach((reservation, index) => {
-            const isCurrentUser = reservation.userId?._id?.toString() === String(config.userId);
-            const popupDiv = document.createElement("div");
-            const popupBox = document.createElement("div");
-            const timeSpan = document.createElement("span");
-
-            popupDiv.className = "popup2";
-            popupDiv.id = `popup-frame-${index}`;
-            popupBox.className = "popup-box";
-            timeSpan.className = "popup-header";
-            timeSpan.textContent = `${reservation.startTime} - ${reservation.endTime}`;
-            popupBox.appendChild(timeSpan);
-
-            if (config.isWalkInMode) {
-                const userImg = document.createElement("img");
-                userImg.className = "user-img";
-                userImg.src = reservation.userId?.image || "/img/default-profile.png";
-                userImg.alt = reservation.studentName || "Reservation profile";
-                userImg.onclick = function(event) {
-                    event.stopPropagation();
-                    if (typeof window.openProfileModal === "function") {
-                        window.openProfileModal(reservation.userId?._id);
-                    }
-                };
-
-                popupBox.appendChild(userImg);
-                popupBox.appendChild(createNameElement(
-                    reservation.userId?.type === "LabTech" && !isCurrentUser
-                        ? `For Walk-in (by ${reservation.studentName})`
-                        : (isCurrentUser ? "For Walk-in (by You)" : reservation.studentName)
-                ));
-            } else if (reservation.isAnonymous && !isCurrentUser) {
-                popupBox.appendChild(createNameElement("Anonymous Student"));
-            } else if (reservation.userId?.type === "LabTech") {
-                popupBox.appendChild(createNameElement("Walk-in Student"));
-            } else {
-                const userImg = document.createElement("img");
-                userImg.className = "user-img";
-                userImg.src = reservation.userId?.image || "/img/default-profile.png";
-                userImg.alt = reservation.studentName || "Reservation profile";
-                userImg.onclick = function(event) {
-                    event.stopPropagation();
-                    if (typeof window.openProfileModal === "function") {
-                        window.openProfileModal(reservation.userId?._id);
-                    }
-                };
-
-                popupBox.appendChild(userImg);
-                popupBox.appendChild(createNameElement(
-                    isCurrentUser
-                        ? `Your Reservation${reservation.isAnonymous ? " (Anonymous)" : ""}`
-                        : reservation.studentName
-                ));
-            }
-
-            popupDiv.appendChild(popupBox);
-            document.body.appendChild(popupDiv);
-        });
-    }
-
-    function togglePopup(popupId) {
-        document.querySelectorAll(".popup2").forEach((popup) => {
-            if (popup.id !== popupId) {
-                popup.classList.remove("show");
-            }
-        });
-
-        const popup = document.getElementById(popupId);
-        if (popup) {
-            popup.classList.toggle("show");
-        }
-    }
-
-    function generateValidEndTimes(elements, selectedSeat) {
-        const seatNumber = selectedSeat.getAttribute("seat-number");
-        const seatTime = selectedSeat.getAttribute("seat-time");
-        const selectedLab = getSelectedLabOption(elements);
-        const selectedDate = elements.dateSelect?.value || "";
-        const startIndex = TIME_SLOTS.indexOf(seatTime);
-
-        elements.endTimeSelect.innerHTML = '<option value="" disabled selected>Select an End Time</option>';
-
-        if (!selectedLab || !selectedDate || startIndex === -1) {
+        if (!seatNumber || !startTime) {
             updateSelectionSummary(elements);
             return;
         }
 
-        fetch(`/api/reservations/lab/${selectedLab.value}/date/${selectedDate}`)
-            .then((response) => response.json())
-            .then((data) => {
-                let nextReservationIndex = TIME_SLOTS.length;
+        const endTimes = getValidEndTimes(seatNumber, startTime);
 
-                if (data.reservations?.length) {
-                    const seatReservations = data.reservations.filter((reservation) =>
-                        reservation.seatNumber.toString() === seatNumber.toString() &&
-                        TIME_SLOTS.indexOf(reservation.startTime) > startIndex
-                    );
+        if (!endTimes.length) {
+            setSelectPlaceholder(elements.endTimeSelect, "No Available End Times");
+            updateSelectionSummary(elements);
+            return;
+        }
 
-                    if (seatReservations.length > 0) {
-                        const earliestNextReservation = seatReservations.reduce((earliest, current) => {
-                            const earliestIndex = TIME_SLOTS.indexOf(earliest.startTime);
-                            const currentIndex = TIME_SLOTS.indexOf(current.startTime);
-                            return currentIndex < earliestIndex ? current : earliest;
-                        });
+        endTimes.forEach((timeSlot) => {
+            const option = document.createElement("option");
+            option.value = timeSlot;
+            option.textContent = timeSlot;
+            elements.endTimeSelect.appendChild(option);
+        });
 
-                        nextReservationIndex = TIME_SLOTS.indexOf(earliestNextReservation.startTime);
-                    }
-                }
+        updateSelectionSummary(elements);
+    }
 
-                for (let index = startIndex + 1; index <= nextReservationIndex; index += 1) {
-                    if (index < TIME_SLOTS.length) {
-                        const option = document.createElement("option");
-                        option.value = TIME_SLOTS[index];
-                        option.textContent = TIME_SLOTS[index];
-                        elements.endTimeSelect.appendChild(option);
-                    }
-                }
+    function setSelectedSeat(elements, nextSeatButton) {
+        const isSameSeat = selectedSeatButton === nextSeatButton;
 
-                if (elements.endTimeSelect.options.length === 1) {
-                    const option = document.createElement("option");
-                    option.value = "";
-                    option.textContent = "No available end times";
-                    option.disabled = true;
-                    elements.endTimeSelect.appendChild(option);
-                }
+        if (selectedSeatButton && !isSameSeat) {
+            selectedSeatButton.classList.remove("is-selected");
+        }
 
-                updateSelectionSummary(elements);
-            })
-            .catch((error) => {
-                console.error("Error fetching reservations:", error);
-            });
+        selectedSeatButton = nextSeatButton;
+        selectedSeatButton.classList.add("is-selected");
+
+        if (!isSameSeat) {
+            populateStartTimes(elements);
+        }
+
+        updateSelectionSummary(elements);
     }
 
     function handleSeatClick(elements, event) {
-        selectedSeatButton = event.currentTarget;
-        if (elements.endTimeSelect) {
-            elements.endTimeSelect.selectedIndex = 0;
+        const seatButton = event.currentTarget;
+
+        if (seatButton.dataset.selectable !== "true") {
+            seatButton.focus();
+            return;
         }
-        generateValidEndTimes(elements, selectedSeatButton);
-        applyRangeSelection(elements);
+
+        setSelectedSeat(elements, seatButton);
+    }
+
+    function renderSeatGrid(elements, capacity) {
+        let seatGridMarkup = "";
+
+        for (let seatNumber = 1; seatNumber <= capacity; seatNumber += 1) {
+            const seatReservations = getSeatReservations(seatNumber);
+            const selectableStartTimes = getSelectableStartTimes(seatNumber);
+            const hasMyBooking = hasCurrentUserBooking(seatReservations);
+            const isSelectable = selectableStartTimes.length > 0;
+            const seatCopy = getSeatCardCopy(seatReservations, isSelectable, hasMyBooking);
+            const classNames = ["seat-card"];
+
+            if (isSelectable) {
+                classNames.push("is-selectable");
+            } else {
+                classNames.push("is-unavailable");
+            }
+
+            if (seatReservations.length) {
+                classNames.push("has-bookings");
+            }
+
+            if (hasMyBooking) {
+                classNames.push("has-my-booking");
+            }
+
+            seatGridMarkup += `
+                <button
+                    type="button"
+                    class="${classNames.join(" ")}"
+                    data-seat-number="${seatNumber}"
+                    data-selectable="${isSelectable ? "true" : "false"}"
+                    aria-disabled="${isSelectable ? "false" : "true"}"
+                    aria-label="Seat ${seatNumber}"
+                >
+                    <span class="seat-card__number">Seat ${seatNumber}</span>
+                    <span class="seat-card__status">${escapeHtml(seatCopy.status)}</span>
+                    <span class="seat-card__hint">${escapeHtml(seatCopy.hint)}</span>
+                </button>
+            `;
+        }
+
+        elements.timetable.innerHTML = seatGridMarkup;
+
+        elements.timetable.querySelectorAll(".seat-card").forEach((button) => {
+            button.addEventListener("click", handleSeatClick.bind(null, elements));
+            button.addEventListener("mouseenter", showSeatHoverCard.bind(null, elements, button));
+            button.addEventListener("mousemove", positionSeatHoverCard.bind(null, elements, button));
+            button.addEventListener("mouseleave", hideSeatHoverCard.bind(null, elements));
+            button.addEventListener("focus", showSeatHoverCard.bind(null, elements, button));
+            button.addEventListener("blur", hideSeatHoverCard.bind(null, elements));
+        });
     }
 
     function loadAvailability(elements) {
@@ -422,91 +616,19 @@
 
         resetSelectionState(elements);
         availabilityLoaded = true;
-        elements.chartHeader.textContent = "Time-by-seat grid";
+        elements.chartHeader.textContent = "Seat map";
+        currentDisplayTimeSlots = getDisplayTimeSlots(selectedDate);
 
-        let displayTimeSlots = [...TIME_SLOTS];
-
-        if (selectedDate === formatToday()) {
-            const now = new Date();
-            const nowMinutes = now.getHours() * 60 + now.getMinutes();
-            displayTimeSlots = TIME_SLOTS.filter((timeSlot) => toMinutes(timeSlot) > nowMinutes);
-
-            if (!displayTimeSlots.length) {
-                renderEmptyTimetable(elements, "No remaining time slots are available for today. Select another date.");
-                return;
-            }
+        if (currentDisplayTimeSlots.length < 2) {
+            renderEmptyTimetable(elements, "No remaining time ranges are available for today. Select another date.");
+            return;
         }
 
         fetch(`/api/reservations/lab/${selectedLab.value}/date/${selectedDate}`)
             .then((response) => response.json())
             .then((data) => {
-                const reservations = data.reservations || [];
-
-                createReservationPopups(reservations);
-                elements.slotChartHead.innerHTML = `<th id="seat-header">Seat</th>${displayTimeSlots.map((time) => `<th>${time}</th>`).join("")}`;
-
-                let timetableHTML = "";
-
-                for (let seat = 1; seat <= capacity; seat += 1) {
-                    timetableHTML += `<tr><td class="freezecol">Seat ${seat}</td>`;
-
-                    displayTimeSlots.forEach((time) => {
-                        const matchingReservation = reservations.find((reservation) =>
-                            reservation.seatNumber === seat && isTimeInRange(time, reservation.startTime, reservation.endTime)
-                        );
-
-                        let seatClass = "clickable-seat";
-                        let popupId = "";
-
-                        if (matchingReservation) {
-                            const reservationIndex = reservations.findIndex((reservation) =>
-                                reservation._id === matchingReservation._id ||
-                                (
-                                    reservation.seatNumber === matchingReservation.seatNumber &&
-                                    reservation.startTime === matchingReservation.startTime &&
-                                    reservation.userId?._id === matchingReservation.userId?._id
-                                )
-                            );
-
-                            popupId = `popup-frame-${reservationIndex}`;
-                            seatClass = matchingReservation.userId?._id?.toString() === String(config.userId)
-                                ? "my-booking-seat"
-                                : "taken-seat";
-                        }
-
-                        timetableHTML += `
-                            <td>
-                                <button
-                                    type="button"
-                                    class="${seatClass}"
-                                    seat-number="${seat}"
-                                    seat-time="${time}"
-                                    data-popup-id="${popupId}"
-                                    aria-label="Seat ${seat} at ${time}"
-                                    title="Seat ${seat} at ${time}"
-                                ></button>
-                            </td>
-                        `;
-                    });
-
-                    timetableHTML += "</tr>";
-                }
-
-                elements.timetable.innerHTML = timetableHTML;
-
-                document.querySelectorAll(".clickable-seat").forEach((button) => {
-                    button.addEventListener("click", handleSeatClick.bind(null, elements));
-                });
-
-                document.querySelectorAll(".taken-seat, .my-booking-seat").forEach((button) => {
-                    button.addEventListener("click", function() {
-                        const popupId = button.getAttribute("data-popup-id");
-                        if (popupId) {
-                            togglePopup(popupId);
-                        }
-                    });
-                });
-
+                currentReservations = data.reservations || [];
+                renderSeatGrid(elements, capacity);
                 updateSelectionSummary(elements);
             })
             .catch((error) => {
@@ -521,12 +643,18 @@
             return;
         }
 
+        if (!elements.startTimeSelect?.value) {
+            alert("Please select a start time.");
+            return;
+        }
+
         if (!elements.endTimeSelect?.value) {
             alert("Please select an end time.");
             return;
         }
 
         elements.confirmPopup?.classList.add("open-popup");
+
         if (elements.overlay) {
             elements.overlay.style.display = "block";
         }
@@ -534,6 +662,7 @@
 
     function hideConfirmPopup(elements) {
         elements.confirmPopup?.classList.remove("open-popup");
+
         if (elements.overlay) {
             elements.overlay.style.display = "none";
         }
@@ -542,13 +671,13 @@
     function submitReservation(elements) {
         const selectedLab = getSelectedLabOption(elements);
         const date = elements.dateSelect?.value || "";
+        const seatNumber = getSelectedSeatNumber();
+        const startTime = getSelectedStartTime(elements);
         const endTime = elements.endTimeSelect?.value || "";
-        const seatNumber = selectedSeatButton?.getAttribute("seat-number");
-        const startTime = selectedSeatButton?.getAttribute("seat-time");
         const anonymousInput = document.getElementById("anonymous");
         const isAnonymous = anonymousInput ? anonymousInput.checked : false;
 
-        if (!selectedLab || !date || !endTime || !seatNumber || !startTime) {
+        if (!selectedLab || !date || !seatNumber || !startTime || !endTime) {
             alert(config.missingSelectionMessage || "Please complete the reservation details first.");
             hideConfirmPopup(elements);
             return;
@@ -578,22 +707,6 @@
             });
     }
 
-    function closeReservationPopupOnOutsideClick(event) {
-        const activePopup = document.querySelector(".popup2.show");
-
-        if (!activePopup) {
-            return;
-        }
-
-        const clickedReservedSeat = event.target.closest(".taken-seat, .my-booking-seat");
-        const clickedPopup = event.target.closest(".popup2");
-        const clickedProfileModal = event.target.closest("#profile-modal");
-
-        if (!clickedReservedSeat && !clickedPopup && !clickedProfileModal) {
-            activePopup.classList.remove("show");
-        }
-    }
-
     function init() {
         const elements = getElements();
 
@@ -603,6 +716,7 @@
 
         elements.labButtons.forEach((button) => {
             const icon = button.querySelector(".lab-option__icon");
+
             if (icon) {
                 icon.textContent = getLabIcon(`${button.dataset.room || ""} ${button.dataset.hall || ""}`);
             }
@@ -622,6 +736,8 @@
 
         if (!elements.labButtons.length) {
             elements.viewButton.disabled = true;
+        } else {
+            loadAvailability(elements);
         }
 
         elements.labSelect.addEventListener("change", function() {
@@ -643,11 +759,13 @@
         });
 
         elements.viewButton?.addEventListener("click", loadAvailability.bind(null, elements));
-        elements.endTimeSelect?.addEventListener("change", applyRangeSelection.bind(null, elements));
+        elements.startTimeSelect?.addEventListener("change", populateEndTimes.bind(null, elements));
+        elements.endTimeSelect?.addEventListener("change", updateSelectionSummary.bind(null, elements));
         elements.reserveButton?.addEventListener("click", openPopup.bind(null, elements));
         elements.confirmCancel?.addEventListener("click", hideConfirmPopup.bind(null, elements));
         elements.confirmSubmit?.addEventListener("click", submitReservation.bind(null, elements));
-        document.addEventListener("click", closeReservationPopupOnOutsideClick);
+        window.addEventListener("scroll", hideSeatHoverCard.bind(null, elements), true);
+        window.addEventListener("resize", hideSeatHoverCard.bind(null, elements));
 
         if (new URLSearchParams(window.location.search).get("success")) {
             window.scrollTo({ top: 0, behavior: "smooth" });

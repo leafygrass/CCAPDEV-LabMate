@@ -14,5 +14,17 @@ services:
       retries: 5
       start_period: 10s
 
+  mongo-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.seed
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mongodb://mongodb:27017/LabMateDB
+    command: npm run seed:if-empty
+    restart: "no"
+
 volumes:
   mongo_data:

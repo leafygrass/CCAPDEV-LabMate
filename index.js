@@ -9,14 +9,11 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const mongodbsesh = require("connect-mongodb-session")(session);
 
-const User = require("./database/models/User");
-const Laboratory = require("./database/models/Laboratory");
 const { DATABASE_URI } = require("./config/pageConfigs");
 const { logSessionState } = require("./middleware/sessionLogger");
 const { deletePastReservations } = require("./services/reservationService");
 const { startReservationCleanupJob } = require("./jobs/reservationCleanup");
-const { ensureAdminAccount } = require("./database/adminAccount");
-const { seedDatabase } = require("./database/seedDatabase");
+const { seedDatabaseIfEmpty } = require("./database/seedDatabase");
 
 const publicRouter = require("./routes/public");
 const studentRouter = require("./routes/student");
@@ -46,18 +43,7 @@ app.engine("hbs", exphbs.engine({
 mongoose.connect(process.env.DATABASE_URL || DATABASE_URI)
     .then(async () => {
         console.log("Connected to MongoDB successfully");
-
-        const userCount = await User.countDocuments();
-        const labCount = await Laboratory.countDocuments();
-
-        if (userCount === 0 && labCount === 0) {
-            console.log("Database is empty. Seeding database...");
-            await seedDatabase();
-        } else {
-            console.log(`Database currently has ${userCount} users & ${labCount} laboratories.`);
-        }
-
-        await ensureAdminAccount();
+        await seedDatabaseIfEmpty();
     })
     .catch((err) => {
         console.error("MongoDB connection error:", err);

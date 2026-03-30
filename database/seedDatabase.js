@@ -70,10 +70,46 @@ const seedDatabase = async () => {
     }
 };
 
+const seedDatabaseIfEmpty = async () => {
+    const shouldManageConnection = mongoose.connection.readyState === 0;
+
+    try {
+        if (shouldManageConnection) {
+            await mongoose.connect(process.env.DATABASE_URL || DATABASE_URI);
+            console.log("Connected to MongoDB");
+        }
+
+        const [userCount, labCount] = await Promise.all([
+            User.countDocuments(),
+            Laboratory.countDocuments()
+        ]);
+
+        if (userCount === 0 && labCount === 0) {
+            console.log("Database is empty. Seeding database...");
+            await seedDatabase();
+            return true;
+        }
+
+        console.log(`Database currently has ${userCount} users & ${labCount} laboratories. Skipping seed.`);
+        await ensureAdminAccount();
+        return false;
+    } catch (error) {
+        console.error("Error checking whether the database needs seeding:", error);
+        throw error;
+    } finally {
+        if (shouldManageConnection) {
+            await mongoose.disconnect();
+        }
+    }
+};
+
 if (require.main === module) {
     seedDatabase()
         .then(() => process.exit(0))
         .catch(() => process.exit(1));
 }
 
-module.exports = { seedDatabase };
+module.exports = {
+    seedDatabase,
+    seedDatabaseIfEmpty
+};

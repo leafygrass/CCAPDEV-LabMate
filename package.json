@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "seed": "node database/seedDatabase.js",
+    "seed:if-empty": "node database/seedIfEmpty.js",
     "demo": "npm install && npm run start"
   },
   "repository": {

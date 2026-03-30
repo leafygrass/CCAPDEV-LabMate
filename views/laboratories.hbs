@@ -22,7 +22,7 @@
                     <div class="sidebar-intro">
                         <span class="sidebar-kicker">{{pageHeading}}</span>
                         <h1>Laboratory Selection</h1>
-                        <p>Choose a room, check the live seat matrix, and complete the reservation from one workspace.</p>
+                        <p>Choose a room, inspect each seat's bookings, and complete the reservation from one workspace.</p>
                     </div>
 
                     <div class="visually-hidden-control">
@@ -86,7 +86,7 @@
                         <div id="legend">
                             <div class="legend-item"><div id="legend-available"></div><span class="legend-text">Available</span></div>
                             <div class="legend-item"><div id="legend-selected"></div><span class="legend-text">Selected</span></div>
-                            <div class="legend-item"><div id="legend-unavailable"></div><span class="legend-text">Occupied</span></div>
+                            <div class="legend-item"><div id="legend-unavailable"></div><span class="legend-text">Fully Booked</span></div>
                             <div class="legend-item"><div id="legend-booking"></div><span class="legend-text">Your Booking</span></div>
                         </div>
                     </header>
@@ -108,18 +108,13 @@
                         <div class="availability-card__header">
                             <div>
                                 <span class="section-kicker">Seat Availability</span>
-                                <h3 id="chart-header">Time-by-seat grid</h3>
+                                <h3 id="chart-header">Seat map</h3>
                             </div>
-                            <p class="availability-card__hint">Select a cell to lock a seat and start time.</p>
+                            <p class="availability-card__hint">Hover a seat to inspect bookings, then select it to choose a start and end time.</p>
                         </div>
 
                         <div id="chart-body">
-                            <table id="slot-chart">
-                                <thead>
-                                    <tr id="slot-chart-head"></tr>
-                                </thead>
-                                <tbody id="timetable"></tbody>
-                            </table>
+                            <div id="timetable" class="seat-grid" aria-live="polite"></div>
                         </div>
                     </section>
 
@@ -127,14 +122,21 @@
                         <section class="schedule-card">
                             <div class="card-heading">
                                 <h3><span class="material-symbols-outlined" aria-hidden="true">schedule</span><span>Reservation Setup</span></h3>
-                                <p>Pick a seat first, then extend the session to the latest available end time.</p>
+                                <p>Pick a seat first, choose a start time, then extend the session to the latest available end time.</p>
                             </div>
 
                             <div class="schedule-grid">
                                 <div class="dashboard-control">
+                                    <label class="dashboard-control__label" for="starttimes">Start Time</label>
+                                    <select name="starttimes" id="starttimes">
+                                        <option value="" disabled selected>Select a Seat First</option>
+                                    </select>
+                                </div>
+
+                                <div class="dashboard-control">
                                     <label class="dashboard-control__label" for="endtimes">Reserve Until</label>
                                     <select name="endtimes" id="endtimes">
-                                        <option value="" disabled selected>Select an End Time</option>
+                                        <option value="" disabled selected>Select a Start Time First</option>
                                     </select>
                                 </div>
 
@@ -176,7 +178,7 @@
                                 <div class="summary-item"><span>Seat</span><strong id="summary-seat">Not selected</strong></div>
                                 <div class="summary-item"><span>Start Time</span><strong id="summary-start">Not selected</strong></div>
                                 <div class="summary-item"><span>End Time</span><strong id="summary-end">Not selected</strong></div>
-                                <div class="summary-item"><span>Duration</span><strong id="summary-duration">Select a seat and end time</strong></div>
+                                <div class="summary-item"><span>Duration</span><strong id="summary-duration">Select a start and end time</strong></div>
                             </div>
 
                             <button id="reserve-button" type="button" disabled>{{reserveButtonLabel}}</button>
@@ -194,6 +196,7 @@
 
         <div id="overlay" class="overlay"></div>
         {{> profile-modal}}
+        <div id="seat-hover-card" class="seat-hover-card" hidden></div>
 
         <div class="container">
             <div class="popup" id="confirm-popup">

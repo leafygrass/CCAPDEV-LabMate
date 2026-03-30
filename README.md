@@ -16,6 +16,8 @@ The app runs on [http://localhost:3000/](http://localhost:3000/).
 
 Note that upon first run, the database will be automatically seeded with users, laboratories, and reservations. The database will automatically be seeded whenever there are no users and no laboratories.
 
+If you use `docker compose up`, Compose now starts MongoDB plus a one-shot `mongo-seed` service. When the database is empty, it seeds the demo data automatically. When data already exists, the seeder exits without changing anything.
+
 ## Signing in - Seeded Dummy Profiles
 
 On first run, the app seeds demo users when the database has no users and no laboratories. The default demo credentials below are defined in `database/seedData.js`.

@@ -11,10 +11,8 @@ body.laboratories-view {
     top: 0;
     z-index: 40;
     padding: 0 2rem;
-    background: rgba(255, 255, 255, 0.9);
-    border-bottom: 1px solid rgba(29, 56, 83, 0.08);
-    box-shadow: none;
-    backdrop-filter: blur(18px);
+    background: var(--green);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .laboratories-view .navbar {
@@ -24,27 +22,29 @@ body.laboratories-view {
 }
 
 .laboratories-view .navbar a {
-    color: var(--dark-blue);
+    color: var(--off-white);
 }
 
 .laboratories-view .navbar a:hover {
-    color: var(--green);
+    color: var(--dark-blue);
 }
 
 .laboratories-view .navbar #labmate-logo {
-    color: var(--green);
+    color: var(--off-white);
 }
 
-.laboratories-view .navbar .active,
 .laboratories-view .navbar .nav-links a:hover {
-    border-bottom-color: var(--green);
+    border-bottom-color: var(--dark-blue);
+}
+
+.laboratories-view .navbar .active {
+    border-bottom-color: var(--off-white);
 }
 
 .laboratories-view .navbar img {
-    width: 46px;
-    height: 46px;
-    border: 3px solid rgba(35, 198, 134, 0.12);
-    box-shadow: none;
+    width: 50px;
+    height: 50px;
+    border: none;
 }
 
 .frame {
@@ -302,10 +302,16 @@ body.laboratories-view {
     background: #4f8ed0;
 }
 
-.labs-main__controls,
-.schedule-grid {
+.labs-main__controls {
     display: grid;
     grid-template-columns: minmax(240px, 360px) auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: end;
 }
@@ -326,6 +332,7 @@ body.laboratories-view {
 }
 
 #dates,
+#starttimes,
 #endtimes {
     width: 100%;
     appearance: none;
@@ -345,6 +352,7 @@ body.laboratories-view {
 }
 
 #dates:focus,
+#starttimes:focus,
 #endtimes:focus {
     outline: none;
     border-color: rgba(35, 198, 134, 0.4);
@@ -423,7 +431,7 @@ body.laboratories-view {
 }
 
 #chart-body {
-    overflow: auto;
+    overflow: visible;
     padding: 18px;
     border-radius: 24px;
     background:
@@ -432,85 +440,101 @@ body.laboratories-view {
     background-size: 22px 22px, auto;
 }
 
-table {
-    width: max-content;
-    min-width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 12px;
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+    gap: 14px;
 }
 
-thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    padding: 0 10px 10px;
-    background: #f2f6f8;
-    color: rgba(29, 56, 83, 0.65);
-    font-size: 12px;
+.seat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 118px;
+    padding: 18px 16px;
+    border: 1px solid rgba(29, 56, 83, 0.08);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--dark-blue);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.seat-card:hover,
+.seat-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: rgba(17, 183, 119, 0.2);
+    box-shadow: 0 16px 28px rgba(29, 56, 83, 0.12);
+    outline: none;
+}
+
+.seat-card.is-selectable {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 239, 243, 0.92));
+}
+
+.seat-card.has-bookings {
+    border-color: rgba(29, 56, 83, 0.16);
+}
+
+.seat-card.is-unavailable {
+    background: linear-gradient(180deg, rgba(124, 142, 166, 0.95), rgba(95, 113, 137, 0.96));
+    border-color: transparent;
+    color: #f4f8fc;
+}
+
+.seat-card.has-my-booking {
+    background: linear-gradient(180deg, rgba(96, 151, 209, 0.98), rgba(79, 142, 208, 0.98));
+    border-color: transparent;
+    color: #f5fbff;
+}
+
+.seat-card.is-selected {
+    background: linear-gradient(135deg, #11b777 0%, #0d7c54 100%);
+    border-color: transparent;
+    color: #f5fff8;
+    box-shadow: 0 0 0 3px rgba(158, 247, 214, 0.95), 0 18px 28px rgba(17, 183, 119, 0.2);
+}
+
+.seat-card__number {
+    font-family: var(--secondary-font-family);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.seat-card__status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(29, 56, 83, 0.08);
+    color: rgba(29, 56, 83, 0.72);
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    white-space: nowrap;
 }
 
-#seat-header {
-    left: 0;
-    z-index: 3;
+.seat-card.is-unavailable .seat-card__status,
+.seat-card.has-my-booking .seat-card__status,
+.seat-card.is-selected .seat-card__status {
+    background: rgba(255, 255, 255, 0.18);
+    color: inherit;
 }
 
-td {
-    padding: 0 10px;
-    text-align: center;
-}
-
-.freezecol {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    padding: 0 18px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.94);
-    color: rgba(29, 56, 83, 0.75);
-    font-family: var(--secondary-font-family);
+.seat-card__hint {
+    color: rgba(29, 56, 83, 0.64);
     font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
+    line-height: 1.4;
 }
 
-.clickable-seat,
-.selected-seat,
-.taken-seat,
-.my-booking-seat {
-    width: 56px;
-    height: 56px;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.clickable-seat {
-    background: #d8e2e8;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-}
-
-.clickable-seat:hover,
-.taken-seat:hover,
-.my-booking-seat:hover {
-    transform: translateY(-2px);
-}
-
-.selected-seat {
-    background: linear-gradient(135deg, #11b777 0%, #0d7c54 100%);
-    box-shadow: 0 0 0 3px rgba(158, 247, 214, 0.95), 0 16px 28px rgba(17, 183, 119, 0.2);
-}
-
-.taken-seat {
-    background: #7c8ea6;
-}
-
-.my-booking-seat {
-    background: #4f8ed0;
+.seat-card.is-unavailable .seat-card__hint,
+.seat-card.has-my-booking .seat-card__hint,
+.seat-card.is-selected .seat-card__hint {
+    color: rgba(245, 251, 255, 0.82);
 }
 
 .empty-state-cell {
@@ -520,6 +544,10 @@ td {
     color: rgba(29, 56, 83, 0.68);
     font-size: 15px;
     text-align: center;
+}
+
+.seat-grid .empty-state-cell {
+    grid-column: 1 / -1;
 }
 
 .labs-main__bottom {
@@ -533,6 +561,7 @@ td {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+    grid-column: 1 / -1;
 }
 
 .selection-chip {
@@ -715,6 +744,63 @@ td {
     line-height: 1.5;
 }
 
+.seat-hover-card {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(320px, calc(100vw - 24px));
+    padding: 16px;
+    border-radius: 22px;
+    background: rgba(20, 31, 44, 0.96);
+    color: #f1f8ff;
+    box-shadow: 0 22px 50px rgba(8, 13, 20, 0.28);
+    pointer-events: none;
+    z-index: 1002;
+}
+
+.seat-hover-card__title {
+    margin: 0 0 6px;
+    font-family: var(--secondary-font-family);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.seat-hover-card__subtitle {
+    margin: 0 0 14px;
+    color: rgba(241, 248, 255, 0.72);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.seat-hover-card__list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.seat-hover-card__item {
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.seat-hover-card__time {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.seat-hover-card__meta {
+    color: rgba(241, 248, 255, 0.78);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 @media (max-width: 1180px) {
     .labs-shell,
     .labs-main__bottom {
@@ -779,17 +865,13 @@ td {
         justify-content: flex-start;
     }
 
-    .clickable-seat,
-    .selected-seat,
-    .taken-seat,
-    .my-booking-seat {
-        width: 46px;
-        height: 46px;
-        border-radius: 12px;
+    .seat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    td {
-        padding: 0 6px;
+    .seat-card {
+        min-height: 110px;
+        padding: 16px 14px;
     }
 
     .labs-footer {
@@ -800,5 +882,9 @@ td {
     .popup2 {
         right: 16px;
         bottom: 16px;
+    }
+
+    .seat-hover-card {
+        display: none;
     }
 }
