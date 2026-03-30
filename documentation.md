@@ -1,10 +1,11 @@
 # LabMate Role-Based CRUD Documentation
 
-This document explains the current CRUD operations available to the three application roles in LabMate:
+This document explains the current CRUD operations available to the three authenticated application roles in LabMate, plus the current unauthenticated visitor access:
 
 - `Student`
 - `LabTech`
 - `Admin`
+- `Visitor` (not signed in)
 
 The descriptions below are based on the current Express routes, shared API routes, and service-layer behavior in this codebase.
 
@@ -17,6 +18,37 @@ This documentation covers CRUD behavior for these main objects:
 - Privileged account management
 - Application logs
 - Laboratory data access
+
+## Visitor
+
+`Visitor` here means an unauthenticated user. This is not a stored account role in the database.
+
+### Create
+
+- Create a student account through public signup via `POST /signup`.
+- Cannot create reservations while signed out.
+- Cannot create `LabTech` or `Admin` accounts.
+
+### Read
+
+- Access public pages:
+  - `GET /`
+  - `GET /about`
+  - `GET /signin-page`
+  - `GET /signup-page`
+  - `GET /signedout-laboratories`
+- Read laboratory seat availability on the signed-out laboratories page.
+- Read limited booking details on the signed-out laboratories page.
+  - The visitor-facing seat hover view shows booking time ranges and whether the booking is anonymous, a walk-in booking, or booked by someone.
+  - The signed-out flow does not expose reservation owner names or profile actions.
+
+### Update
+
+- No update actions are available while signed out.
+
+### Delete
+
+- No delete actions are available while signed out.
 
 ## Student
 
@@ -144,10 +176,11 @@ This documentation covers CRUD behavior for these main objects:
   - There is a read API at `GET /api/laboratories/:room`
   - There is no role-specific create, update, or delete flow for laboratories in the current app
 
-## Reservation Summary By Role
+## Reservation Summary By Role / Access Level
 
 | Role | Create Reservation | Read Reservations | Update Reservation | Delete Reservation |
 | --- | --- | --- | --- | --- |
+| Visitor | No | Read-only seat availability and limited booking metadata on `/signedout-laboratories` | No | No |
 | Student | Yes, own reservation via `/create-reservation` | Own reservations | End time of reservations shown on student page | Own reservations from student page |
 | LabTech | Yes, walk-in reservation via `/create-reservation-labtech` | All reservations on labtech page | End time of reservations shown on labtech page | Reservations that are at least 10 minutes past start time |
 | Admin | No dedicated reservation UI | No dedicated reservation UI | No dedicated reservation UI | No dedicated reservation UI |
