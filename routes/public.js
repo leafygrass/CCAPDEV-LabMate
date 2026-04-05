@@ -172,7 +172,12 @@ router.post("/signup", async (req, res) => {
             lastName,
             email,
             password: hashPass,
-            type: "Student"
+            type: "Student",
+            //NEW: initialize password history
+            passwordHistory: [hashPass],
+
+            //NEW: track last successful password change
+            lastPasswordChange: null
         });
 
         await newUser.save();

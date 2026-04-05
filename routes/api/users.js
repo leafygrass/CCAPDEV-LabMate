@@ -9,6 +9,9 @@ const {
     deleteUserAccount
 } = require("../../services/userService");
 
+const User = require("../../database/models/User");
+const argon2 = require("argon2");
+
 function validatePassword(newPass) {
   const errors = [];
 
@@ -157,46 +160,85 @@ router.delete("/api/user/delete", isAuth, async (req, res) => {
     }
 });
 
+
 router.post("/changepassword", async (req, res) => {
     try {
-        let { oldPassword, newPassword, confirmPassword } = req.body;
-        email = req.user.email;
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+        const email = req.session.user.email;
 
-        console.log("Received change password request for email:", email);
         const user = await User.findOne({ email });
 
-        try {
-            const passMatch = await argon2.verify(user.oldPassword, oldPassword);
-            if (!passMatch) {
-                return res.status(401).json({ error: "Invalid password." });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        // NEW: Prevent password reuse
+        if (user.passwordHistory) {
+            for (const oldHash of user.passwordHistory) {
+                const isReuse = await argon2.verify(oldHash, newPassword);
+                if (isReuse) {
+                    return res.status(400).json({
+                        error: "You cannot reuse a previous password."
+                    });
+                }
             }
-        } catch (verifyError) {
-            console.error("Password verification error:", verifyError.message);
-
-            if (verifyError.message.includes("must contain a $ as first char")) {
-                return res.status(401).json({
-                    error: "There was an issue with your password. Please try again later or contact support."
-                });
-            }
-
-            return res.status(401).json({ error: "Authentication failed. Please try again." });
+        }
+        // Verify old password (re-authentication)
+        const passMatch = await argon2.verify(user.password, oldPassword);
+        if (!passMatch) {
+            return res.status(401).json({ error: "Invalid password." });
         }
 
-        passStrengthCheck = validatePassword(newPass);
-        if(!passStrengthCheck.isValid) {
+        // Check new password match
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ error: "Passwords do not match" });
+        }
+
+        // Password strength validation
+        const passStrengthCheck = validatePassword(newPassword);
+        if (!passStrengthCheck.isValid) {
             return res.status(400).json({ error: passStrengthCheck.errors });
         }
 
-        addApplicationLog({
-            actorName: `${user.firstName} ${user.lastName}`,
-            actorType: user.type,
-            action: "CHANGE_PASSWORD",
-            target: user.email
-        });
 
-        //return redirectToUserHome(res, user.type);
+        // NEW: Enforce 1-day rule
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        if (user.lastPasswordChange && (Date.now() - user.lastPasswordChange < ONE_DAY)) {
+            return res.status(400).json({
+                error: "Password can only be changed once per day."
+            });
+        }
+
+        // NEW: Save current password to history
+        if (!user.passwordHistory) user.passwordHistory = [];
+        user.passwordHistory.push(user.password);
+
+        // limit history to last 3 passwords
+        if (user.passwordHistory.length > 3) {
+            user.passwordHistory.shift();
+        }
+
+        // NEW: Hash new password
+        const newHashedPassword = await argon2.hash(newPassword);
+        user.password = newHashedPassword;
+
+        // NEW: Update timestamp
+        user.lastPasswordChange = Date.now();
+
+        await user.save();
+
+        // // Logging
+        // addApplicationLog({
+        //     actorName: `${user.firstName} ${user.lastName}`,
+        //     actorType: user.type,
+        //     action: "CHANGE_PASSWORD",
+        //     target: user.email
+        // });
+
+        return res.json({ success: true, message: "Password changed successfully." });
+
     } catch (error) {
-        console.error("Error during password change:", error.message, error.stack);
+        console.error("Error during password change:", error.message);
         res.status(500).json({ error: "An error occurred during password change" });
     }
 });
