@@ -2,8 +2,23 @@ const { getHomePathByType } = require("../services/sessionService");
 
 function isAuth(req, res, next) {
     if (req.session.user) {
+        //NEW: Add logging for successful authentication
+        addApplicationLog({
+            actorName: req.session.user.email,
+            actorType: req.session.user.type,
+            action: "AUTH_SUCCESS",
+            target: req.originalUrl
+        });
         next();
     } else {
+        //NEW: Add logging for failed authentication attempts
+        addApplicationLog({
+            actorName: "Guest",
+            actorType: "Guest",
+            action: "AUTH_FAILED",
+            target: req.originalUrl
+        });
+
         res.redirect("/signin-page");
     }
 }
@@ -36,7 +51,14 @@ function createRoleGuard(expectedType, fallbackRedirectPath = "/student-home") {
 
             return res.redirect(getHomePathByType(req.session.user.type) || fallbackRedirectPath);
         }
-
+        //NEW: Add logging for successful role access
+        addApplicationLog({
+            actorName: req.session.user.email,
+            actorType: req.session.user.type,
+            action: "ACCESS_GRANTED",
+            target: req.originalUrl,
+            metadata: `Access granted for role: ${req.session.user.type}`
+        });
         next();
     };
 }
