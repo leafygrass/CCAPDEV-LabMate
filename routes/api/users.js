@@ -9,6 +9,39 @@ const {
     deleteUserAccount
 } = require("../../services/userService");
 
+function validatePassword(newPass) {
+  const errors = [];
+
+  if (newPass.length < 8) {
+    errors.push(" must be at least 8 characters long");
+  }
+
+  if (!/[a-z]/.test(newPass)) {
+    errors.push(" must include at least one lowercase letter");
+  }
+
+  if (!/[A-Z]/.test(newPass)) {
+    errors.push(" must include at least one uppercase letter");
+  }
+
+  if (!/\d/.test(newPass)) {
+    errors.push(" must include at least one number");
+  }
+
+  if (!/[^A-Za-z\d]/.test(newPass)) {
+    errors.push(" must include at least one special character");
+  }
+
+  if (errors.length > 0) {
+    errors[0] = "Password" + errors[0];
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
 const router = express.Router();
 
 router.get("/api/session", (req, res) => {
@@ -41,7 +74,7 @@ router.get("/api/user/details/:id", async (req, res) => {
 
 router.get("/api/user/:id", async (req, res) => {
     try {
-        console.log(`Fetching user with ID: ${req.params.id}`);
+        console.log(`Fetching user with ID: ${req.params.id}`); 
         const user = await findUserById(req.params.id);
 
         if (!user) {
@@ -121,6 +154,50 @@ router.delete("/api/user/delete", isAuth, async (req, res) => {
     } catch (error) {
         console.error(`Error deleting user account: ${error.message}`);
         res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+router.post("/changepassword", async (req, res) => {
+    try {
+        let { oldPassword, newPassword, confirmPassword } = req.body;
+        email = req.user.email;
+
+        console.log("Received change password request for email:", email);
+        const user = await User.findOne({ email });
+
+        try {
+            const passMatch = await argon2.verify(user.oldPassword, oldPassword);
+            if (!passMatch) {
+                return res.status(401).json({ error: "Invalid password." });
+            }
+        } catch (verifyError) {
+            console.error("Password verification error:", verifyError.message);
+
+            if (verifyError.message.includes("must contain a $ as first char")) {
+                return res.status(401).json({
+                    error: "There was an issue with your password. Please try again later or contact support."
+                });
+            }
+
+            return res.status(401).json({ error: "Authentication failed. Please try again." });
+        }
+
+        passStrengthCheck = validatePassword(newPass);
+        if(!passStrengthCheck.isValid) {
+            return res.status(400).json({ error: passStrengthCheck.errors });
+        }
+
+        addApplicationLog({
+            actorName: `${user.firstName} ${user.lastName}`,
+            actorType: user.type,
+            action: "CHANGE_PASSWORD",
+            target: user.email
+        });
+
+        //return redirectToUserHome(res, user.type);
+    } catch (error) {
+        console.error("Error during password change:", error.message, error.stack);
+        res.status(500).json({ error: "An error occurred during password change" });
     }
 });
 
