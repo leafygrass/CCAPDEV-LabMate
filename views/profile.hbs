@@ -212,7 +212,12 @@
                 <h2>Change Password</h2>
                 <p class="settings-section-copy">Set a new password for your account. This simple version only requires you to be logged in.</p>
 
-                <form id="change-password-form">
+                <form id="change-password-form" action ="/changepass" method="post">
+                    <div class="form-group" style="padding-top: 10px; padding-bottom: 10px;">
+                        <label for="new-password">Confirm Old Password</label>
+                        <input type="password" id="old-password" name="oldPassword" required>
+                    </div>
+
                     <div class="form-group" style="padding-top: 10px; padding-bottom: 10px;">
                         <label for="new-password">New Password</label>
                         <input type="password" id="new-password" name="newPassword" required>
@@ -346,11 +351,17 @@
             });
         });
 
-        document.getElementById("change-password-form").addEventListener("submit", function(event) {
+        /* document.getElementById("change-password-form").addEventListener("submit", function(event) {
             event.preventDefault();
 
+            const oldPassword = document.getElementById("old-password").value;
             const newPassword = document.getElementById("new-password").value;
             const confirmPassword = document.getElementById("confirm-new-password").value;
+
+            if (oldPassword) {
+                alert("Old password is incorrect.");
+                return
+            }
 
             if (newPassword !== confirmPassword) {
                 alert("Passwords do not match.");
@@ -381,7 +392,7 @@
                 console.error("Error:", error);
                 alert("An error occurred while changing the password.");
             });
-        });
+        }); */
 
         document.getElementById("delete-account-form").addEventListener("submit", function(event) {
             event.preventDefault();

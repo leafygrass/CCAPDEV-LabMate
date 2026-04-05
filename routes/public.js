@@ -13,6 +13,39 @@ const { addApplicationLog } = require("../services/applicationLogService");
 
 const router = express.Router();
 
+function validatePassword(newPass) {
+  const errors = [];
+
+  if (newPass.length < 8) {
+    errors.push(" must be at least 8 characters long");
+  }
+
+  if (!/[a-z]/.test(newPass)) {
+    errors.push(" must include at least one lowercase letter");
+  }
+
+  if (!/[A-Z]/.test(newPass)) {
+    errors.push(" must include at least one uppercase letter");
+  }
+
+  if (!/\d/.test(newPass)) {
+    errors.push(" must include at least one number");
+  }
+
+  if (!/[^A-Za-z\d]/.test(newPass)) {
+    errors.push(" must include at least one special character");
+  }
+
+  if (errors.length > 0) {
+    errors[0] = "Password" + errors[0];
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
 router.get("/", async (req, res) => {
     if (req.session.user) {
         const user = await refreshSessionUser(req);
@@ -55,13 +88,13 @@ router.post("/signin", async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-            return res.status(401).json({ error: "Account does not exist. Please try again with a different email" });
+            return res.status(401).json({ error: "Invalid username and/or password." }); 
         }
 
         try {
             const passMatch = await argon2.verify(user.password, password);
             if (!passMatch) {
-                return res.status(401).json({ error: "Password is incorrect. Please try again." });
+                return res.status(401).json({ error: "Invalid username and/or password." });
             }
         } catch (verifyError) {
             console.error("Password verification error:", verifyError.message);
@@ -109,6 +142,11 @@ router.post("/signup", async (req, res) => {
 
         if (!firstName || !lastName || !email || !newPass || !confirmPass) {
             return res.status(400).json({ error: "All fields are required" });
+        }
+
+        passStrengthCheck = validatePassword(newPass);
+        if(!passStrengthCheck.isValid) {
+            return res.status(400).json({ error: passStrengthCheck.errors });
         }
 
         if (newPass !== confirmPass) {
