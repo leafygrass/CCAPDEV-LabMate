@@ -81,7 +81,17 @@ router.post("/signin", async (req, res) => {
 
         console.log("Received sign-in request for email:", email);
 
+        //NEW: add logging for missing fields
         if (!email || !password) {
+
+            addApplicationLog({
+                actorName: "Guest",
+                actorType: "Guest",
+                action: "VALIDATION_FAILED",
+                target: "SIGN_IN",
+                metadata: "Missing email or password"
+            });
+
             return res.status(400).json({ error: "Email and password are required" });
         }
 
@@ -168,15 +178,42 @@ router.post("/signup", async (req, res) => {
         console.log("Received sign-up request:", { firstName, lastName, email, type });
 
         if (!firstName || !lastName || !email || !newPass || !confirmPass) {
+            //NEW: add logging for missing fields
+            addApplicationLog({
+                actorName: "Guest",
+                actorType: "Guest",
+                action: "VALIDATION_FAILED",
+                target: "SIGN_UP",
+                metadata: "Missing required fields"
+            });
+
             return res.status(400).json({ error: "All fields are required" });
         }
 
         passStrengthCheck = validatePassword(newPass);
-        if(!passStrengthCheck.isValid) {
+        if (!passStrengthCheck.isValid) {
+            //NEW: add logging for password strength failure
+            addApplicationLog({
+                actorName: email,
+                actorType: "Guest",
+                action: "VALIDATION_FAILED",
+                target: "SIGN_UP",
+                metadata: passStrengthCheck.errors.join(", ")
+            });
+
             return res.status(400).json({ error: passStrengthCheck.errors });
         }
 
-        if (newPass !== confirmPass) {
+       if (newPassword !== confirmPassword) {
+            //NEW: add logging for password mismatch
+            addApplicationLog({
+                actorName: user.email,
+                actorType: user.type,
+                action: "VALIDATION_FAILED",
+                target: "CHANGE_PASSWORD",
+                metadata: "Passwords do not match"
+            });
+
             return res.status(400).json({ error: "Passwords do not match" });
         }
 
