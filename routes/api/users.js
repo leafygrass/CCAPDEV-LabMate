@@ -191,14 +191,14 @@ router.put("/api/user/password", isAuth, async (req, res) => {
             user.passwordHistory.shift();
         } 
 
-        await user.save();
-
         const user2 = await updateUserPassword(req.session.user._id, newPassword);
 
         req.session.user = user2.toObject();
 
         // NEW: Update timestamp
         user.lastPasswordChange = Date.now();
+
+        await user.save();
 
         // Logging
         addApplicationLog({
@@ -208,7 +208,7 @@ router.put("/api/user/password", isAuth, async (req, res) => {
             target: user.email
         });
 
-        return res.json({ success: true, message: "Password updated successfully" });
+        return res.json({ success: true, message: "Password updated successfully." });
     } catch (error) {
         console.error("Error during password change:", error.message, error.stack);
         res.status(500).json({ success: false, error: "An error occurred during password change" });

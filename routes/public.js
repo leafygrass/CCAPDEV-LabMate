@@ -9,6 +9,9 @@ const {
     refreshSessionUser,
     destroySession
 } = require("../services/sessionService");
+const {
+    updateUserPassword
+} = require("../services/userService");
 const { addApplicationLog } = require("../services/applicationLogService");
 
 const router = express.Router();
@@ -73,6 +76,7 @@ router.get("/about", (req, res) => {
 
 router.get("/signin-page", createGuestOnlyPageHandler("signin-page"));
 router.get("/signup-page", createGuestOnlyPageHandler("signup-page"));
+router.get("/forgotpass-page", createGuestOnlyPageHandler("forgotpass-page"));
 
 router.post("/signin", async (req, res) => {
     try {
@@ -273,7 +277,7 @@ router.get("/signedout-laboratories", async (req, res) => {
     await renderLaboratoryPage(req, res, "signedout-laboratories", "firstName lastName isAnonymous type");
 });
 
-router.get("/logout", (req, res) => {
+router.get("/logout", (req, res) => { 
     console.log("Destroying session and clearing remember me period...");
 
     if (req.session?.user) {
@@ -286,6 +290,56 @@ router.get("/logout", (req, res) => {
     }
 
     destroySession(req, res, () => res.redirect("/"));
+});
+
+router.post("/resetpassword", async (req, res) => {
+    try {
+        const { email, securityQuestion } = req.body;
+
+        if (!email || !securityQuestion) {
+            return res.status(400).json({ success: false, message: "Failed to read inputs." });
+        } 
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ success: false, message: "User not found or answer is incorrect." });
+        } 
+
+        try {
+            const ansMatch = await argon2.verify(user.securityAnswer, securityQuestion);
+            if (!ansMatch) {
+                return res.status(400).json({ success: false, message: "User not found or answer is incorrect." });
+            }
+        } catch (verifyError) {
+            console.error("Security verification error:", verifyError.message);
+
+            if (verifyError.message.includes("must contain a $ as first char")) {
+                return res.status(401).json({
+                    success: false,
+                    message: "There was an issue with your security question. Please try again later or contact support."
+                });
+            }
+
+            return res.status(401).json({ success: false, message: "Authentication failed. Please try again." });
+        }
+
+        const user2 = await updateUserPassword(user._id, "NewPassword123!");
+
+        //req.session.user = user2.toObject();
+
+        // Logging
+        addApplicationLog({
+            actorName: `${user.firstName} ${user.lastName}`,
+            actorType: user.type,
+            action: "RESET_PASSWORD", 
+            target: user.email
+        });
+
+        return res.json({ success: true, message: "Your password has been changed to NewPassword123!" });
+    } catch (error) {
+        console.error("Error during password reset:", error.message, error.stack);
+        res.status(500).json({ success: false, message: "An error occurred during password reset" });
+    }
 });
 
 module.exports = router;

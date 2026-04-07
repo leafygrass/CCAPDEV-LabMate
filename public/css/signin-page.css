@@ -96,7 +96,7 @@ h1 {
     }
 }
 
-input[type="email"], input[type="password"] {
+input[type="email"], input[type="password"], input[type="secAns"] {
     width: 90%;
     height: 1.5rem;
     border-radius: 10px;

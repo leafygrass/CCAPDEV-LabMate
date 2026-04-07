@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>LabMate - Sign In</title> 
+        <title>LabMate - Forgot Password</title> 
         <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
         
         <meta charset = "UTF-8">
@@ -17,33 +17,25 @@
         
         {{> navbar-signedout}}
 
-        <form action ="/signin" method="post" id="container">
+        <form action ="/resetpassword" method="post" id="container">
             <div id="signin"> 
                 <div class="left-column">
-                    <h1>Account Sign-in</h1>
+                    <h1>Forgot Password</h1>
                     <p id="error">{{#if error}}{{error}}{{/if}}</p>
                     <div class="inputWrapper">
-                        <label for="email">DLSU Email Address</label>
+                        <label for="email">Email</label>
                         <input type="email" name="email" required>
                     </div>
                     <div class="inputWrapper">
-                        <label for="password">Password</label>
-                        <input type="password" name="password" required>
-                    </div>
-                    <div class="inputWrapper">
-                        <label>
-                            <input type="checkbox" name="rememberMe" value="true" title="Checking this box will let this website to remember your account for 3 weeks.">
-                            Remember me
-                        </label>
+                        <label for="secAns">Security Question: What is your mother's maiden name?</label>
+                        <input type="password" name="secAns" required>
                     </div>
                     
-                    <input id="signin-btn" type="submit" value="Sign In">
+                    <input id="signin-btn" type="submit" value="Submit">
                 </div>
 
                 <div class="right-column">
                     <img src="/img/sign-in-graphic.png">
-                    <div style="margin-top: 10px">Don't have an account?  <a href="/signup-page">Create an account. </a></div>
-                    <div style="margin-top: 10px">Forgot your password?  <a href="/forgotpass-page">Reset. </a></div>
                 </div>
             </div>
         </form>
@@ -51,32 +43,58 @@
         <script>
             document.getElementById("container").addEventListener("submit", async function(e) {
                 e.preventDefault();
-
+                
                 const formData = new FormData(this);
                 const errorDiv = document.getElementById("error");
+
+                /* if (formData.get("secAns")) {
+                    errorDiv.textContent = "Input read.";
+                    return;
+                } */
                 
-                try {
-                    const response = await fetch("/signin", {
+                try { 
+                    const response = await fetch("/resetpassword", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
                             email: formData.get("email"),
-                            password: formData.get("password"),
-                            rememberMe: formData.get("rememberMe") === "true"
+                            securityQuestion: formData.get("secAns")
                         })
+                    })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            alert(data.message);
+                        } else {
+                            alert(data.message || "Failed to reset password. Please try again.");
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                        alert("An error occurred while resetting the password.");
                     });
 
-                    // temporarily store userid in localstorage so app doesnt break
+                    /*
+                    if (response.ok) {
+                        errorDiv.textContent = "Success.";
+                        alert(response.message);
+                    } else {
+                        errorDiv.textContent = "Failure.";
+                        alert(response.message);
+                    } */
+                        
+
+                    /* temporarily store userid in localstorage so app doesnt break
                     if (response.ok) {
                         const sessionResponse = await fetch("/api/session");
-                        const sessionData = await sessionResponse.json();
+                        /* const sessionData = await sessionResponse.json();
                         
                         if (sessionData.user) {
                             localStorage.setItem("userId", sessionData.user._id);
                             localStorage.setItem("isLabtech", (sessionData.user.type === "LabTech").toString());
-                        }
+                        } 
                     }
 
                     // follow redirect
@@ -91,10 +109,11 @@
                     if (!response.ok) {
                         errorDiv.textContent = data.error;
                         errorDiv.style.display = "block";
-                    }
+                    } */
+                    //errorDiv.textContent = "Success.";
                 } catch (error) {
-                    console.error("Error during sign-in:", error);
-                    errorDiv.textContent = "An error occurred during sign-in. Please try again.";
+                    console.error("Error during password recovery:", error);
+                    errorDiv.textContent = "An error occurred. Please try again.";
                     errorDiv.style.display = "block";
                 }
             });
